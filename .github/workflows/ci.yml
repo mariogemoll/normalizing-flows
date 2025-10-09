@@ -33,3 +33,6 @@ jobs:
       - name: Run ruff
         working-directory: py
         run: uvx ruff check .
+      - name: Check the notebook
+        working-directory: ts
+        run: npx check-notebook ../py/normalizing-flows.ipynb

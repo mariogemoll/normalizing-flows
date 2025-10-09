@@ -9,6 +9,7 @@
     "esbuild": "^0.25.10",
     "eslint": "^9.36.0",
     "eslint-plugin-simple-import-sort": "^12.1.1",
+    "notebook-checker": "github:mariogemoll/check-notebook#8846de19d1f1d2a2f92fbb662f218cbe1b110e90",
     "typescript": "^5.9.3",
     "typescript-eslint": "^8.45.0"
   }
