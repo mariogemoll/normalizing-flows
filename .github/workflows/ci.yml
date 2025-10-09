@@ -1,0 +1,35 @@
+name: CI
+on: [push]
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          submodules: recursive
+      - name: "Make sure .gitignore is sorted"
+        run: sort -c .gitignore
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22.x'
+      - name: "Install dependencies"
+        working-directory: ts
+        run: npm i
+      - name: "ESLint the ESLint config"
+        working-directory: ts
+        run: npx eslint -c basic.eslint.config.js basic.eslint.config.js eslint.config.js
+      - name: "ESLint"
+        working-directory: ts
+        run: npx eslint src
+      - name: "Compile TypeScript"
+        working-directory: ts
+        run: npx tsc
+      - name: Install uv
+        uses: astral-sh/setup-uv@v6
+        with:
+          version: "0.9.0"
+      - name: Set up Python
+        run: uv python install
+      - name: Run ruff
+        working-directory: py
+        run: uvx ruff check .

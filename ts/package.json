@@ -1,0 +1,15 @@
+{
+  "name": "project",
+  "version": "0.0.0",
+  "type": "module",
+  "scripts": {
+    "build": "esbuild src/page.ts --bundle --outfile=dist/page.js --format=esm"
+  },
+  "devDependencies": {
+    "esbuild": "^0.25.10",
+    "eslint": "^9.36.0",
+    "eslint-plugin-simple-import-sort": "^12.1.1",
+    "typescript": "^5.9.3",
+    "typescript-eslint": "^8.45.0"
+  }
+}
