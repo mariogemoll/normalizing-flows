@@ -21,6 +21,9 @@ jobs:
       - name: "ESLint"
         working-directory: ts
         run: npx eslint src
+      - name: Run Stylelint
+        working-directory: ts
+        run: npx stylelint '**/*.css'
       - name: "Compile TypeScript"
         working-directory: ts
         run: npx tsc
