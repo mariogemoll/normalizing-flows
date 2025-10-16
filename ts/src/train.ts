@@ -5,8 +5,9 @@ import { makeMoons } from './moons-dataset';
 
 /**
  * Train the normalizing flow model
+ * Returns the trained model
  */
-export async function trainModel(): Promise<void> {
+export async function trainModel(): Promise<NormalizingFlow> {
   console.log('Starting training...');
 
   // Try WebGPU first (fastest), fall back to WebGL
@@ -122,4 +123,6 @@ export async function trainModel(): Promise<void> {
   // Cleanup
   testData.dispose();
   reconstructionError.dispose();
+
+  return flow;
 }
