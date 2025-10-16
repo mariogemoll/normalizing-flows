@@ -1,8 +1,15 @@
-import { initWidget } from './linear-transform';
+import { initWidget as initLinearTransform } from './linear-transform';
+import { initWidget as initMoonsDataset } from './moons-widget';
 import { el } from './web-ui-common/dom';
 
-const widgetContainer = el(document, '#linear-transform-widget');
-if (!(widgetContainer instanceof HTMLDivElement)) {
-  throw new Error('Widget container must be an HTMLDivElement');
+// Linear transform widget
+const linearTransformContainer = el(document, '#linear-transform-widget');
+if (linearTransformContainer instanceof HTMLDivElement) {
+  initLinearTransform(linearTransformContainer);
 }
-initWidget(widgetContainer);
+
+// Moons dataset widget
+const moonsDatasetContainer = el(document, '#moons-dataset-widget');
+if (moonsDatasetContainer instanceof HTMLDivElement) {
+  initMoonsDataset(moonsDatasetContainer);
+}
