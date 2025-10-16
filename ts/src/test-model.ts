@@ -1,4 +1,4 @@
-import * as tf from '@tensorflow/tfjs';
+import './tf-types';
 
 import { NormalizingFlow } from './model';
 import { makeMoons } from './moons-dataset';

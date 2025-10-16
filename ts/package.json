@@ -5,11 +5,10 @@
   "scripts": {
     "build": "esbuild src/page.ts --bundle --outfile=dist/page.js --format=esm"
   },
-  "dependencies": {
-    "@tensorflow/tfjs": "^4.22.0"
-  },
   "devDependencies": {
     "@stylistic/stylelint-plugin": "^4.0.0",
+    "@tensorflow/tfjs": "^4.22.0",
+    "@tensorflow/tfjs-backend-webgpu": "^4.22.0",
     "esbuild": "^0.25.10",
     "eslint": "^9.36.0",
     "eslint-plugin-simple-import-sort": "^12.1.1",

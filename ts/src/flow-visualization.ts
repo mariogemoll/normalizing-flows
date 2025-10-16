@@ -1,5 +1,4 @@
-import type * as tf from '@tensorflow/tfjs';
-
+import type { Tensor2D } from './tf-types';
 import { addFrameUsingScales, drawScatter, getContext } from './web-ui-common/canvas';
 import type { Pair } from './web-ui-common/types';
 import { makeScale } from './web-ui-common/util';
@@ -11,7 +10,7 @@ const MARGIN = 40;
 /**
  * Get data bounds for scaling across all frames
  */
-function getAllFramesBounds(frames: tf.Tensor2D[]): {
+function getAllFramesBounds(frames: Tensor2D[]): {
   xMin: number;
   xMax: number;
   yMin: number;
@@ -42,7 +41,7 @@ export function removePlaceholder(box: HTMLDivElement): void {
   }
 }
 
-export function initWidget(container: HTMLDivElement, frames: tf.Tensor2D[]): void {
+export function initWidget(container: HTMLDivElement, frames: Tensor2D[]): void {
   removePlaceholder(container);
 
   if (frames.length === 0) {
@@ -137,7 +136,7 @@ export function initWidget(container: HTMLDivElement, frames: tf.Tensor2D[]): vo
   }
 
   function play(): void {
-    if (isPlaying) return;
+    if (isPlaying) {return;}
 
     isPlaying = true;
     playButton.textContent = 'Pause';

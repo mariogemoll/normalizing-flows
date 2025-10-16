@@ -1,10 +1,10 @@
-import * as tf from '@tensorflow/tfjs';
+import type { Tensor2D } from './tf-types';
 
 /**
  * Generate a 2D moons dataset (two interleaving half circles)
  * Similar to sklearn.datasets.make_moons
  */
-export function makeMoons(nSamples: number, noise = 0.05): tf.Tensor2D {
+export function makeMoons(nSamples: number, noise = 0.05): Tensor2D {
   const samplesPerMoon = Math.floor(nSamples / 2);
 
   // Generate outer moon (top half circle)
@@ -41,5 +41,5 @@ export function makeMoons(nSamples: number, noise = 0.05): tf.Tensor2D {
   x.dispose();
   y.dispose();
 
-  return moons as tf.Tensor2D;
+  return moons as Tensor2D;
 }

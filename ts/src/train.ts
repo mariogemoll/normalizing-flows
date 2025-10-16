@@ -1,7 +1,6 @@
-import * as tf from '@tensorflow/tfjs';
-
 import { NormalizingFlow } from './model';
 import { makeMoons } from './moons-dataset';
+import type { Variable } from './tf-types';
 
 /**
  * Train the normalizing flow model
@@ -40,7 +39,7 @@ export async function trainModel(): Promise<NormalizingFlow> {
   const batchSize = 256;
 
   // Get trainable weights as Variables
-  const weights = flow.getTrainableWeights().map(w => w.read() as tf.Variable);
+  const weights = flow.getTrainableWeights().map(w => w.read() as Variable);
 
   // Track timing for ETA
   const startTime = Date.now();

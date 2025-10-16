@@ -1,6 +1,5 @@
-import type * as tf from '@tensorflow/tfjs';
-
 import { makeMoons } from './moons-dataset';
+import type { Tensor2D } from './tf-types';
 import { addFrameUsingScales, drawScatter, getContext } from './web-ui-common/canvas';
 import type { Pair } from './web-ui-common/types';
 import { makeScale } from './web-ui-common/util';
@@ -13,7 +12,7 @@ const MARGIN = 40;
  * Get data bounds for scaling
  */
 function getDataBounds(
-  data: tf.Tensor2D
+  data: Tensor2D
 ): { xMin: number; xMax: number; yMin: number; yMax: number } {
   const min = data.min(0).arraySync() as number[];
   const max = data.max(0).arraySync() as number[];
@@ -71,7 +70,7 @@ export function initWidget(container: HTMLDivElement): void {
   const ctx = getContext(canvas);
 
   // Current data tensor
-  let currentData: tf.Tensor2D | null = null;
+  let currentData: Tensor2D | null = null;
 
   function updateVisualization(): void {
     // Clear canvas

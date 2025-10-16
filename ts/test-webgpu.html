@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>WebGPU Test</title>
+    <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@4.22.0/dist/tf.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs-backend-webgpu@4.22.0/dist/tf-backend-webgpu.min.js"></script>
+    <style>
+        body {
+            font-family: monospace;
+            padding: 20px;
+            max-width: 800px;
+            margin: 0 auto;
+        }
+        .test-result {
+            padding: 10px;
+            margin: 10px 0;
+            border-radius: 5px;
+        }
+        .success {
+            background-color: #d4edda;
+            border: 1px solid #c3e6cb;
+        }
+        .error {
+            background-color: #f8d7da;
+            border: 1px solid #f5c6cb;
+        }
+        .info {
+            background-color: #d1ecf1;
+            border: 1px solid #bee5eb;
+        }
+    </style>
+</head>
+<body>
+    <h1>TensorFlow.js WebGPU Test</h1>
+    <div id="output"></div>
+
+    <script>
+        const output = document.getElementById('output');
+
+        function log(message, type = 'info') {
+            const div = document.createElement('div');
+            div.className = `test-result ${type}`;
+            div.textContent = message;
+            output.appendChild(div);
+            console.log(message);
+        }
+
+        async function testWebGPU() {
+            try {
+                log('TensorFlow.js version: ' + tf.version.tfjs);
+
+                // Check if WebGPU is available in browser
+                if (!navigator.gpu) {
+                    log('WebGPU is not available in this browser', 'error');
+                    return;
+                } else {
+                    log('navigator.gpu is available', 'success');
+                }
+
+                // Try to set WebGPU backend
+                log('Attempting to set WebGPU backend...');
+                try {
+                    await tf.setBackend('webgpu');
+                    await tf.ready();
+                    log('Successfully set WebGPU backend!', 'success');
+                } catch (error) {
+                    log('Failed to set WebGPU backend: ' + error.message, 'error');
+                    log('Falling back to WebGL...');
+                    await tf.setBackend('webgl');
+                    await tf.ready();
+                }
+
+                log('Active backend: ' + tf.getBackend(), 'success');
+
+                // Run a simple operation
+                log('Running simple tensor operation...');
+                const a = tf.tensor([1, 2, 3, 4]);
+                const b = tf.tensor([5, 6, 7, 8]);
+                const sum = tf.add(a, b);
+                const result = await sum.data();
+                log('Result: [' + Array.from(result).join(', ') + ']', 'success');
+
+                // Test linspace
+                log('Testing tf.linspace...');
+                const linspaceResult = tf.linspace(0, 10, 5);
+                const linspaceData = await linspaceResult.data();
+                log('Linspace result: [' + Array.from(linspaceData).join(', ') + ']', 'success');
+
+                // Cleanup
+                a.dispose();
+                b.dispose();
+                sum.dispose();
+                linspaceResult.dispose();
+
+                log('All tests completed successfully!', 'success');
+                log('Memory: ' + JSON.stringify(tf.memory()));
+
+            } catch (error) {
+                log('Error: ' + error.message, 'error');
+                log('Stack: ' + error.stack, 'error');
+            }
+        }
+
+        // Run tests when page loads
+        window.addEventListener('load', () => {
+            testWebGPU();
+        });
+    </script>
+</body>
+</html>
