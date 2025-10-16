@@ -1,6 +1,6 @@
 import { initWidget as initLinearTransform } from './linear-transform';
 import { initWidget as initMoonsDataset } from './moons-widget';
-import { testModel } from './test-model';
+import { trainModel } from './train';
 import { el } from './web-ui-common/dom';
 
 // Linear transform widget
@@ -15,5 +15,5 @@ if (moonsDatasetContainer instanceof HTMLDivElement) {
   initMoonsDataset(moonsDatasetContainer);
 }
 
-// Run model test
-testModel();
+// Train model
+void trainModel();
