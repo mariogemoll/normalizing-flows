@@ -113,6 +113,12 @@ export function initWidget(container: HTMLDivElement, frames: Tensor2D[]): void 
   let isPlaying = false;
   let animationId: number | null = null;
   let currentFrame = 0;
+  let lastFrameTime = 0;
+  let isWaitingAtEnd = false;
+  let isWaitingAtStart = false;
+  const FRAME_DELAY_MS = 500;
+  const END_PAUSE_MS = 1000;
+  const START_PAUSE_MS = 1000;
 
   function drawFrame(frameIndex: number): void {
     // Clear canvas
@@ -140,10 +146,43 @@ export function initWidget(container: HTMLDivElement, frames: Tensor2D[]): void 
 
     isPlaying = true;
     playButton.textContent = 'Pause';
+    lastFrameTime = performance.now();
+    isWaitingAtStart = true; // Start with initial pause
 
-    const animate = (): void => {
-      currentFrame = (currentFrame + 1) % frames.length;
-      drawFrame(currentFrame);
+    const animate = (timestamp: number): void => {
+      const elapsed = timestamp - lastFrameTime;
+      let requiredDelay = FRAME_DELAY_MS;
+
+      if (isWaitingAtStart) {
+        requiredDelay = START_PAUSE_MS;
+      } else if (isWaitingAtEnd) {
+        requiredDelay = END_PAUSE_MS;
+      }
+
+      if (elapsed >= requiredDelay) {
+        if (isWaitingAtStart) {
+          // Start pause is over, begin animation
+          isWaitingAtStart = false;
+          currentFrame = 1; // Move to second frame
+        } else if (isWaitingAtEnd) {
+          // End pause is over, restart from beginning
+          isWaitingAtEnd = false;
+          isWaitingAtStart = true;
+          currentFrame = 0;
+        } else {
+          // Advance to next frame
+          currentFrame = currentFrame + 1;
+
+          // Check if we've reached the end
+          if (currentFrame >= frames.length) {
+            currentFrame = frames.length - 1; // Stay on last frame
+            isWaitingAtEnd = true;
+          }
+        }
+
+        drawFrame(currentFrame);
+        lastFrameTime = timestamp;
+      }
 
       if (isPlaying) {
         animationId = requestAnimationFrame(animate);
