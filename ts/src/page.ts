@@ -1,6 +1,7 @@
 import { initWidget as initFlowVisualization } from './flow-visualization';
 import { initWidget as initLinearTransform } from './linear-transform';
 import { initWidget as initLossCurve } from './loss-curve-widget';
+import { loadLossHistory, saveLossHistory } from './loss-history';
 import { NormalizingFlow } from './model';
 import { initWidget as initMoonsDataset } from './moons-widget';
 import { createPageState } from './page-state';
@@ -13,7 +14,7 @@ void (async(): Promise<void> => {
   await tf.ready();
 
   // Create page-wide state
-  const state = createPageState(2); // Start with 2 layers
+  const state = createPageState(8, 1000); // 8 layers, 1000 epochs
 
   // Linear transform widget
   const linearTransformContainer = el(document, '#linear-transform-widget');
@@ -32,6 +33,7 @@ void (async(): Promise<void> => {
   let lossCurveWidget: ReturnType<typeof initLossCurve> | undefined;
   if (lossCurveContainer instanceof HTMLDivElement) {
     lossCurveWidget = initLossCurve(lossCurveContainer);
+    lossCurveWidget.setMaxEpochs(state.numEpochs);
   }
 
   // Create model using state configuration
@@ -48,6 +50,15 @@ void (async(): Promise<void> => {
     if (success) {
       console.log('Loaded weights from model.json');
       trainStatus.textContent = 'Loaded pre-trained weights';
+
+      // Try to load loss history
+      if (lossCurveWidget) {
+        const lossHistory = await loadLossHistory('loss-history.bin');
+        if (lossHistory) {
+          lossCurveWidget.setLossHistory(lossHistory);
+        }
+      }
+
       // Generate and show visualization
       updateVisualization(state.model, flowVizContainer);
     } else {
@@ -95,12 +106,22 @@ void (async(): Promise<void> => {
     }
   }
 
-  // Expose state globally for console access
+  // Expose state and utilities globally for console access
   interface WindowWithState {
     state: typeof state;
+    saveLossHistory: typeof saveLossHistory;
   }
-  (window as unknown as WindowWithState).state = state;
+  const windowWithState = window as unknown as WindowWithState;
+  windowWithState.state = state;
+  windowWithState.saveLossHistory = (): void => {
+    if (lossCurveWidget) {
+      saveLossHistory(lossCurveWidget.getLossHistory());
+    } else {
+      console.error('Loss curve widget not available');
+    }
+  };
+
   console.log('Page state available as window.state');
-  console.log('To save weights: await state.model.saveWeights()');
-  console.log('To load weights: await state.model.loadWeights("model.json")');
+  console.log('To save model weights: await state.model.saveWeights()');
+  console.log('To save loss history: saveLossHistory()');
 })();

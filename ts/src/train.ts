@@ -1,7 +1,7 @@
 import type { LossCurveWidget } from './loss-curve-widget';
 import { NormalizingFlow } from './model';
 import { makeMoons } from './moons-dataset';
-import type { LayerConfigState } from './page-state';
+import type { TrainingConfigState } from './page-state';
 import type { Variable } from './tf-types';
 import type { Pair } from './web-ui-common/types';
 
@@ -10,7 +10,7 @@ import type { Pair } from './web-ui-common/types';
  * Returns the trained model
  */
 export async function trainModel(
-  state: LayerConfigState,
+  state: TrainingConfigState,
   lossCurveWidget?: LossCurveWidget
 ): Promise<NormalizingFlow> {
   console.log('Starting training...');
@@ -40,8 +40,8 @@ export async function trainModel(
   // Create optimizer
   const optimizer = tf.train.adam(0.001);
 
-  // Training parameters (reduced for faster testing)
-  const numEpochs = 100;
+  // Training parameters
+  const numEpochs = state.numEpochs;
   const batchSize = 256;
 
   // Set max epochs for loss curve widget

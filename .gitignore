@@ -1,6 +1,9 @@
 .claude
 .ipynb_checkpoints
 /ts/dist
+/ts/loss-history.bin
+/ts/model.json
+/ts/model.weights.bin
 node_modules
 package-lock.json
 uv.lock

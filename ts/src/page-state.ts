@@ -6,6 +6,7 @@ import type { Tensor2D } from './tf-types';
  */
 export interface PageState {
   numLayers: number;
+  numEpochs: number;
   trainData: Tensor2D | null;
   model: NormalizingFlow | null;
 }
@@ -25,18 +26,20 @@ export interface TrainDataState {
 }
 
 /**
- * Interface for widgets that need layer configuration
+ * Interface for widgets that need training configuration
  */
-export interface LayerConfigState {
+export interface TrainingConfigState {
   numLayers: number;
+  numEpochs: number;
 }
 
 /**
  * Create initial page state
  */
-export function createPageState(numLayers = 8): PageState {
+export function createPageState(numLayers = 8, numEpochs = 100): PageState {
   return {
     numLayers,
+    numEpochs,
     trainData: null,
     model: null
   };

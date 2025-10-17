@@ -5,6 +5,8 @@ import { makeScale } from './web-ui-common/util';
 export interface LossCurveWidget {
   update: (lossHistory: Pair<number>[]) => void;
   setMaxEpochs: (maxEpochs: number) => void;
+  getLossHistory: () => Pair<number>[];
+  setLossHistory: (history: Pair<number>[]) => void;
 }
 
 export function initWidget(container: HTMLDivElement): LossCurveWidget {
@@ -23,11 +25,26 @@ export function initWidget(container: HTMLDivElement): LossCurveWidget {
   // Track the maximum number of epochs for fixed x-axis
   let maxEpochs = 1000; // Default value
 
+  // Track the current loss history
+  let currentLossHistory: Pair<number>[] = [];
+
   function setMaxEpochs(epochs: number): void {
     maxEpochs = epochs;
   }
 
+  function getLossHistory(): Pair<number>[] {
+    return currentLossHistory;
+  }
+
+  function setLossHistory(history: Pair<number>[]): void {
+    currentLossHistory = history;
+    update(history);
+  }
+
   function update(lossHistory: Pair<number>[]): void {
+    // Update current history
+    currentLossHistory = lossHistory;
+
     if (lossHistory.length === 0) {
       return;
     }
@@ -74,5 +91,5 @@ export function initWidget(container: HTMLDivElement): LossCurveWidget {
     });
   }
 
-  return { update, setMaxEpochs };
+  return { update, setMaxEpochs, getLossHistory, setLossHistory };
 }
