@@ -2,7 +2,7 @@ import { initWidget as initFlowVisualization } from './flow-visualization';
 import { loadLossHistory, saveLossHistory } from './loss-history';
 import { NormalizingFlow } from './model';
 import { initWidget as initMoonsDataset } from './moons-widget';
-import { createPageState } from './page-state';
+import { createPageState, type TrainingState } from './page-state';
 import type { Tensor2D } from './tf-types';
 import { trainModel } from './train';
 import { initWidget as initTraining } from './training-widget';
@@ -12,6 +12,7 @@ export interface PipelineContainers {
   training: HTMLDivElement;
   flowVisualization: HTMLDivElement;
   trainButton: HTMLButtonElement;
+  resetButton: HTMLButtonElement;
   trainStatus: HTMLSpanElement;
 }
 
@@ -38,6 +39,7 @@ export async function initPipeline(containers: PipelineContainers): Promise<void
     if (success) {
       console.log('Loaded weights from model.json');
       containers.trainStatus.textContent = 'Loaded pre-trained weights';
+      state.trainingState = 'completed';
 
       // Try to load loss history
       const lossHistory = await loadLossHistory('loss-history.bin');
@@ -53,24 +55,123 @@ export async function initPipeline(containers: PipelineContainers): Promise<void
   } catch (error) {
     console.log('Could not load model.json:', error);
     containers.trainStatus.textContent =
-      'No pre-trained weights found. Click "Train Model" to train.';
+      'No pre-trained weights found. Click "Train model" to train.';
   }
 
-  // Train button handler
+  // Update button states based on training status
+  function updateButtonStates(): void {
+    switch (state.trainingState) {
+    case 'training':
+      containers.trainButton.textContent = 'Pause training';
+      containers.trainButton.disabled = false;
+      containers.resetButton.disabled = true;
+      break;
+    case 'paused':
+      containers.trainButton.textContent = 'Resume training';
+      containers.trainButton.disabled = false;
+      containers.resetButton.disabled = false;
+      break;
+    case 'completed':
+      containers.trainButton.textContent = 'Training completed';
+      containers.trainButton.disabled = true;
+      containers.resetButton.disabled = false;
+      break;
+    case 'not_started':
+      containers.trainButton.textContent = 'Train model';
+      containers.trainButton.disabled = false;
+      containers.resetButton.disabled = false;
+      break;
+    }
+  }
+
+  // Initial button state
+  updateButtonStates();
+
+  // Reset button handler
+  containers.resetButton.addEventListener('click', () => {
+    // Create new untrained model
+    state.model = new NormalizingFlow(state.numLayers);
+    state.trainingState = 'not_started';
+    console.log('Reset: Created new untrained model');
+
+    // Clear loss history
+    trainingWidget.setLossHistory([]);
+
+    // Update status and visualization
+    containers.trainStatus.textContent = 'Model reset. Ready to train.';
+    updateVisualization(state.model, containers.flowVisualization);
+    updateButtonStates();
+  });
+
+  // Train/Pause button handler
   // eslint-disable-next-line @typescript-eslint/no-misused-promises
   containers.trainButton.addEventListener('click', async() => {
-    containers.trainButton.disabled = true;
+    if (state.trainingState === 'training') {
+      // Pause training (will be handled by training loop)
+      state.trainingState = 'paused';
+      containers.trainStatus.textContent = 'Pausing training...';
+    } else if (state.trainingState !== 'completed') {
+      // Start or resume training (only if not completed)
+      await startTraining();
+    }
+  });
+
+  async function startTraining(): Promise<void> {
+    state.trainingState = 'training';
+    updateButtonStates();
+
+    // Show training in progress view
+    showTrainingInProgress(containers.flowVisualization);
+
     containers.trainStatus.textContent = 'Training...';
 
     // Train and update model in state
     state.model = await trainModel(state, trainingWidget);
 
-    containers.trainStatus.textContent = 'Training complete!';
-    containers.trainButton.disabled = false;
+    // Store final state before calling other functions (widen type to avoid narrowing issues)
+    const finalState = state.trainingState as TrainingState;
+
+    updateButtonStates();
+
+    // Update status based on final state (trainModel may have changed it to 'paused')
+    switch (finalState) {
+    case 'paused':
+      containers.trainStatus.textContent = 'Training paused';
+      break;
+    case 'completed':
+      containers.trainStatus.textContent = 'Training complete!';
+      break;
+    default:
+      // Should not happen, but handle gracefully
+      containers.trainStatus.textContent = 'Training finished';
+    }
 
     // Update visualization
     updateVisualization(state.model, containers.flowVisualization);
-  });
+  }
+
+  function showTrainingInProgress(container: HTMLDivElement): void {
+    container.innerHTML = `
+      <div style="
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        height: 400px;
+        background: #f5f5f5;
+        border: 1px solid #ccc;
+        border-radius: 4px;
+      ">
+        <div style="text-align: center; color: #666;">
+          <div style="font-size: 18px; font-weight: bold; margin-bottom: 8px;">
+            Training in Progress
+          </div>
+          <div style="font-size: 14px;">
+            Visualization will be available when training is paused or completed
+          </div>
+        </div>
+      </div>
+    `;
+  }
 
   function updateVisualization(model: NormalizingFlow, container: HTMLDivElement): void {
     const initialNumSamples = 500;
@@ -102,7 +203,8 @@ export async function initPipeline(containers: PipelineContainers): Promise<void
     container.innerHTML = '';
     initFlowVisualization(container, frames, {
       onResample: generateFrames,
-      initialSamples: initialNumSamples
+      initialSamples: initialNumSamples,
+      autoplay: state.trainingState === 'completed' || state.trainingState === 'paused'
     });
   }
 

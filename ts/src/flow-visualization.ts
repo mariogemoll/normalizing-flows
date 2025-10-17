@@ -44,6 +44,7 @@ export function removePlaceholder(box: HTMLDivElement): void {
 export interface FlowVisualizationOptions {
   onResample?: (numSamples: number) => Tensor2D[];
   initialSamples?: number;
+  autoplay?: boolean;
 }
 
 export function initWidget(
@@ -302,7 +303,9 @@ export function initWidget(
     });
   }
 
-  // Initial draw and autostart
+  // Initial draw and optionally autostart
   drawFrame(0);
-  play();
+  if (options?.autoplay ?? true) {
+    play();
+  }
 }

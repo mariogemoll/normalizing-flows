@@ -1,6 +1,6 @@
 import { NormalizingFlow } from './model';
 import { makeMoons } from './moons-dataset';
-import type { TrainingConfigState } from './page-state';
+import type { PageState } from './page-state';
 import type { Variable } from './tf-types';
 import type { TrainingWidget } from './training-widget';
 import type { Pair } from './web-ui-common/types';
@@ -10,7 +10,7 @@ import type { Pair } from './web-ui-common/types';
  * Returns the trained model
  */
 export async function trainModel(
-  state: TrainingConfigState,
+  state: PageState,
   trainingWidget?: TrainingWidget
 ): Promise<NormalizingFlow> {
   console.log('Starting training...');
@@ -33,9 +33,13 @@ export async function trainModel(
 
   console.log('Active backend:', tf.getBackend());
 
-  // Create model using state configuration
-  const flow = new NormalizingFlow(state.numLayers);
-  console.log(`Created normalizing flow with ${state.numLayers} coupling layers`);
+  // Use existing model from state (for resume) or create new one
+  const flow = state.model ?? new NormalizingFlow(state.numLayers);
+  if (state.model === null) {
+    console.log(`Created normalizing flow with ${state.numLayers} coupling layers`);
+  } else {
+    console.log('Resuming training with existing model');
+  }
 
   // Create optimizer
   const optimizer = tf.train.adam(0.001);
@@ -57,11 +61,21 @@ export async function trainModel(
   let lastLogTime = startTime;
   const timings: number[] = [];
 
-  // Track loss history for visualization
-  const lossHistory: Pair<number>[] = [];
+  // Get existing loss history (for resume) or start fresh
+  const lossHistory: Pair<number>[] = trainingWidget ? trainingWidget.getLossHistory() : [];
+  const startEpoch = lossHistory.length;
+
+  console.log(`Starting from epoch ${startEpoch}`);
 
   // Training loop
-  for (let epoch = 0; epoch < numEpochs; epoch++) {
+  for (let epoch = startEpoch; epoch < numEpochs; epoch++) {
+    // Check if training should be paused
+    if (state.trainingState !== 'training') {
+      console.log('Training paused at epoch', epoch);
+      state.trainingState = 'paused';
+      return flow;
+    }
+
     // Generate batch of moons data
     const x = makeMoons(batchSize, 0.05);
 
@@ -123,6 +137,7 @@ export async function trainModel(
   }
 
   console.log('Training complete!');
+  state.trainingState = 'completed';
 
   // Test the trained model
   console.log('\nTesting trained model...');

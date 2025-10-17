@@ -1,6 +1,8 @@
 import type { NormalizingFlow } from './model';
 import type { Tensor2D } from './tf-types';
 
+export type TrainingState = 'not_started' | 'training' | 'paused' | 'completed';
+
 /**
  * Page-wide state object
  */
@@ -9,6 +11,7 @@ export interface PageState {
   numEpochs: number;
   trainData: Tensor2D | null;
   model: NormalizingFlow | null;
+  trainingState: TrainingState;
 }
 
 /**
@@ -41,6 +44,7 @@ export function createPageState(numLayers = 8, numEpochs = 100): PageState {
     numLayers,
     numEpochs,
     trainData: null,
-    model: null
+    model: null,
+    trainingState: 'not_started'
   };
 }
