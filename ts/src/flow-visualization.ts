@@ -217,6 +217,7 @@ export function initWidget(container: HTMLDivElement, frames: Tensor2D[]): void 
     drawFrame(currentFrame);
   });
 
-  // Initial draw
+  // Initial draw and autostart
   drawFrame(0);
+  play();
 }
