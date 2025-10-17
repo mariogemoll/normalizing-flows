@@ -1,8 +1,8 @@
-import type { LossCurveWidget } from './loss-curve-widget';
 import { NormalizingFlow } from './model';
 import { makeMoons } from './moons-dataset';
 import type { TrainingConfigState } from './page-state';
 import type { Variable } from './tf-types';
+import type { TrainingWidget } from './training-widget';
 import type { Pair } from './web-ui-common/types';
 
 /**
@@ -11,7 +11,7 @@ import type { Pair } from './web-ui-common/types';
  */
 export async function trainModel(
   state: TrainingConfigState,
-  lossCurveWidget?: LossCurveWidget
+  trainingWidget?: TrainingWidget
 ): Promise<NormalizingFlow> {
   console.log('Starting training...');
 
@@ -44,9 +44,9 @@ export async function trainModel(
   const numEpochs = state.numEpochs;
   const batchSize = 256;
 
-  // Set max epochs for loss curve widget
-  if (lossCurveWidget) {
-    lossCurveWidget.setMaxEpochs(numEpochs);
+  // Set max epochs for training widget
+  if (trainingWidget) {
+    trainingWidget.setMaxEpochs(numEpochs);
   }
 
   // Get trainable weights as Variables
@@ -81,8 +81,8 @@ export async function trainModel(
     lossHistory.push([epoch, lossValue[0]]);
 
     // Update visualization every epoch
-    if (lossCurveWidget) {
-      lossCurveWidget.update(lossHistory);
+    if (trainingWidget) {
+      trainingWidget.update(lossHistory);
     }
 
     // Log progress every 10 epochs

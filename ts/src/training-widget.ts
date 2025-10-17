@@ -2,14 +2,14 @@ import { addFrameUsingScales, drawLine, getContext } from './web-ui-common/canva
 import type { Pair } from './web-ui-common/types';
 import { makeScale } from './web-ui-common/util';
 
-export interface LossCurveWidget {
+export interface TrainingWidget {
   update: (lossHistory: Pair<number>[]) => void;
   setMaxEpochs: (maxEpochs: number) => void;
   getLossHistory: () => Pair<number>[];
   setLossHistory: (history: Pair<number>[]) => void;
 }
 
-export function initWidget(container: HTMLDivElement): LossCurveWidget {
+export function initWidget(container: HTMLDivElement): TrainingWidget {
   // Clear container
   container.innerHTML = '';
 

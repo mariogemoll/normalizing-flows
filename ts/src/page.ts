@@ -1,12 +1,12 @@
 import { initWidget as initFlowVisualization } from './flow-visualization';
 import { initWidget as initLinearTransform } from './linear-transform';
-import { initWidget as initLossCurve } from './loss-curve-widget';
 import { loadLossHistory, saveLossHistory } from './loss-history';
 import { NormalizingFlow } from './model';
 import { initWidget as initMoonsDataset } from './moons-widget';
 import { createPageState } from './page-state';
 import type { Tensor2D } from './tf-types';
 import { trainModel } from './train';
+import { initWidget as initTraining } from './training-widget';
 import { el } from './web-ui-common/dom';
 
 void (async(): Promise<void> => {
@@ -28,12 +28,12 @@ void (async(): Promise<void> => {
     initMoonsDataset(moonsDatasetContainer, state);
   }
 
-  // Loss curve widget
-  const lossCurveContainer = el(document, '#loss-curve-widget');
-  let lossCurveWidget: ReturnType<typeof initLossCurve> | undefined;
-  if (lossCurveContainer instanceof HTMLDivElement) {
-    lossCurveWidget = initLossCurve(lossCurveContainer);
-    lossCurveWidget.setMaxEpochs(state.numEpochs);
+  // Training widget
+  const trainingContainer = el(document, '#training-widget');
+  let trainingWidget: ReturnType<typeof initTraining> | undefined;
+  if (trainingContainer instanceof HTMLDivElement) {
+    trainingWidget = initTraining(trainingContainer);
+    trainingWidget.setMaxEpochs(state.numEpochs);
   }
 
   // Create model using state configuration
@@ -52,10 +52,10 @@ void (async(): Promise<void> => {
       trainStatus.textContent = 'Loaded pre-trained weights';
 
       // Try to load loss history
-      if (lossCurveWidget) {
+      if (trainingWidget) {
         const lossHistory = await loadLossHistory('loss-history.bin');
         if (lossHistory) {
-          lossCurveWidget.setLossHistory(lossHistory);
+          trainingWidget.setLossHistory(lossHistory);
         }
       }
 
@@ -76,7 +76,7 @@ void (async(): Promise<void> => {
     trainStatus.textContent = 'Training...';
 
     // Train and update model in state
-    state.model = await trainModel(state, lossCurveWidget);
+    state.model = await trainModel(state, trainingWidget);
 
     trainStatus.textContent = 'Training complete!';
     trainBtn.disabled = false;
@@ -129,10 +129,10 @@ void (async(): Promise<void> => {
   const windowWithState = window as unknown as WindowWithState;
   windowWithState.state = state;
   windowWithState.saveLossHistory = (): void => {
-    if (lossCurveWidget) {
-      saveLossHistory(lossCurveWidget.getLossHistory());
+    if (trainingWidget) {
+      saveLossHistory(trainingWidget.getLossHistory());
     } else {
-      console.error('Loss curve widget not available');
+      console.error('Training widget not available');
     }
   };
 
