@@ -86,12 +86,24 @@ void (async(): Promise<void> => {
   });
 
   function updateVisualization(model: NormalizingFlow, container: Element): void {
-    // Sample from standard normal distribution (generation)
-    const numSamples = 500;
-    const normalSamples = tf.randomNormal([numSamples, 2]) as Tensor2D;
+    const initialNumSamples = 500;
 
-    // Run inverse transform to generate data (from normal to moons)
-    const [frames] = model.inverse(normalSamples);
+    // Function to generate frames for a given number of samples
+    function generateFrames(numSamples: number): Tensor2D[] {
+      // Sample from standard normal distribution (generation)
+      const normalSamples = tf.randomNormal([numSamples, 2]) as Tensor2D;
+
+      // Run inverse transform to generate data (from normal to moons)
+      const [frames] = model.inverse(normalSamples);
+
+      // Note: normalSamples is the first frame in the frames array,
+      // so we don't dispose it here. It will be disposed when the frames are disposed.
+
+      return frames;
+    }
+
+    // Generate initial frames
+    const frames = generateFrames(initialNumSamples);
 
     // The frames are already in generation order: [normal, ..., moons]
     console.log('Generation frames:', frames.length);
@@ -102,7 +114,10 @@ void (async(): Promise<void> => {
     if (container instanceof HTMLDivElement) {
       // Clear previous widget
       container.innerHTML = '';
-      initFlowVisualization(container, frames);
+      initFlowVisualization(container, frames, {
+        onResample: generateFrames,
+        initialSamples: initialNumSamples
+      });
     }
   }
 

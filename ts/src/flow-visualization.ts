@@ -41,13 +41,24 @@ export function removePlaceholder(box: HTMLDivElement): void {
   }
 }
 
-export function initWidget(container: HTMLDivElement, frames: Tensor2D[]): void {
+export interface FlowVisualizationOptions {
+  onResample?: (numSamples: number) => Tensor2D[];
+  initialSamples?: number;
+}
+
+export function initWidget(
+  container: HTMLDivElement,
+  initialFrames: Tensor2D[],
+  options?: FlowVisualizationOptions
+): void {
   removePlaceholder(container);
 
-  if (frames.length === 0) {
+  if (initialFrames.length === 0) {
     container.textContent = 'No frames to display';
     return;
   }
+
+  let frames = initialFrames;
 
   // Create control panel
   const controlPanel = document.createElement('div');
@@ -55,6 +66,7 @@ export function initWidget(container: HTMLDivElement, frames: Tensor2D[]): void 
   controlPanel.style.display = 'flex';
   controlPanel.style.alignItems = 'center';
   controlPanel.style.gap = '15px';
+  controlPanel.style.marginBottom = '10px';
 
   // Play/Pause button
   const playButton = document.createElement('button');
@@ -84,6 +96,38 @@ export function initWidget(container: HTMLDivElement, frames: Tensor2D[]): void 
 
   container.appendChild(controlPanel);
 
+  // Resample control panel (if callback provided)
+  let resampleButton: HTMLButtonElement | null = null;
+  let sampleInput: HTMLInputElement | null = null;
+
+  if (options?.onResample) {
+    const resamplePanel = document.createElement('div');
+    resamplePanel.className = 'control-panel';
+    resamplePanel.style.display = 'flex';
+    resamplePanel.style.alignItems = 'center';
+    resamplePanel.style.gap = '15px';
+    resamplePanel.style.marginBottom = '10px';
+
+    // Sample size input
+    const sampleLabel = document.createElement('label');
+    sampleLabel.textContent = 'Samples: ';
+    sampleInput = document.createElement('input');
+    sampleInput.type = 'number';
+    sampleInput.value = (options.initialSamples ?? 500).toString();
+    sampleInput.min = '100';
+    sampleInput.max = '10000';
+    sampleInput.step = '100';
+    sampleLabel.appendChild(sampleInput);
+    resamplePanel.appendChild(sampleLabel);
+
+    // Resample button
+    resampleButton = document.createElement('button');
+    resampleButton.textContent = 'Resample';
+    resamplePanel.appendChild(resampleButton);
+
+    container.appendChild(resamplePanel);
+  }
+
   // Create canvas
   const canvas = document.createElement('canvas');
   canvas.width = CANVAS_WIDTH;
@@ -94,20 +138,29 @@ export function initWidget(container: HTMLDivElement, frames: Tensor2D[]): void 
 
   const ctx = getContext(canvas);
 
-  // Get bounds for all frames (for consistent scaling)
-  const bounds = getAllFramesBounds(frames);
-  const xPadding = (bounds.xMax - bounds.xMin) * 0.1;
-  const yPadding = (bounds.yMax - bounds.yMin) * 0.1;
+  // Scales (will be updated by updateBoundsAndScales)
+  let xScale: ReturnType<typeof makeScale>;
+  let yScale: ReturnType<typeof makeScale>;
 
-  // Create scales
-  const xScale = makeScale(
-    [bounds.xMin - xPadding, bounds.xMax + xPadding],
-    [MARGIN, CANVAS_WIDTH - MARGIN]
-  );
-  const yScale = makeScale(
-    [bounds.yMin - yPadding, bounds.yMax + yPadding],
-    [CANVAS_HEIGHT - MARGIN, MARGIN]
-  );
+  function updateBoundsAndScales(): void {
+    // Get bounds for all frames (for consistent scaling)
+    const bounds = getAllFramesBounds(frames);
+    const xPadding = (bounds.xMax - bounds.xMin) * 0.1;
+    const yPadding = (bounds.yMax - bounds.yMin) * 0.1;
+
+    // Create scales
+    xScale = makeScale(
+      [bounds.xMin - xPadding, bounds.xMax + xPadding],
+      [MARGIN, CANVAS_WIDTH - MARGIN]
+    );
+    yScale = makeScale(
+      [bounds.yMin - yPadding, bounds.yMax + yPadding],
+      [CANVAS_HEIGHT - MARGIN, MARGIN]
+    );
+  }
+
+  // Initialize scales
+  updateBoundsAndScales();
 
   // Animation state
   let isPlaying = false;
@@ -216,6 +269,38 @@ export function initWidget(container: HTMLDivElement, frames: Tensor2D[]): void 
     currentFrame = parseInt(frameSlider.value);
     drawFrame(currentFrame);
   });
+
+  // Resample handler (set up after functions are defined)
+  if (resampleButton && sampleInput && options?.onResample) {
+    const onResampleCallback = options.onResample;
+    resampleButton.addEventListener('click', () => {
+      const numSamples = parseInt(sampleInput.value);
+
+      // Pause animation
+      pause();
+
+      // Get new frames
+      const newFrames = onResampleCallback(numSamples);
+
+      // Dispose old frames
+      for (const frame of frames) {
+        frame.dispose();
+      }
+
+      frames = newFrames;
+      currentFrame = 0;
+
+      // Update UI
+      frameSlider.max = (frames.length - 1).toString();
+
+      // Recalculate bounds and scales
+      updateBoundsAndScales();
+
+      // Redraw and restart animation
+      drawFrame(0);
+      play();
+    });
+  }
 
   // Initial draw and autostart
   drawFrame(0);
