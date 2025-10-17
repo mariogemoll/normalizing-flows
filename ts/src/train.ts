@@ -1,12 +1,16 @@
+import type { LossCurveWidget } from './loss-curve-widget';
 import { NormalizingFlow } from './model';
 import { makeMoons } from './moons-dataset';
 import type { Variable } from './tf-types';
+import type { Pair } from './web-ui-common/types';
 
 /**
  * Train the normalizing flow model
  * Returns the trained model
  */
-export async function trainModel(): Promise<NormalizingFlow> {
+export async function trainModel(
+  lossCurveWidget?: LossCurveWidget
+): Promise<NormalizingFlow> {
   console.log('Starting training...');
 
   // Try WebGPU first (fastest), fall back to WebGL
@@ -38,6 +42,11 @@ export async function trainModel(): Promise<NormalizingFlow> {
   const numEpochs = 100;
   const batchSize = 256;
 
+  // Set max epochs for loss curve widget
+  if (lossCurveWidget) {
+    lossCurveWidget.setMaxEpochs(numEpochs);
+  }
+
   // Get trainable weights as Variables
   const weights = flow.getTrainableWeights().map(w => w.read() as Variable);
 
@@ -45,6 +54,9 @@ export async function trainModel(): Promise<NormalizingFlow> {
   const startTime = Date.now();
   let lastLogTime = startTime;
   const timings: number[] = [];
+
+  // Track loss history for visualization
+  const lossHistory: Pair<number>[] = [];
 
   // Training loop
   for (let epoch = 0; epoch < numEpochs; epoch++) {
@@ -60,9 +72,19 @@ export async function trainModel(): Promise<NormalizingFlow> {
       throw new Error('Optimizer returned null loss');
     }
 
-    // Log progress
+    // Get loss value for every epoch
+    const lossValue = await loss.data();
+
+    // Add to loss history every epoch
+    lossHistory.push([epoch, lossValue[0]]);
+
+    // Update visualization every epoch
+    if (lossCurveWidget) {
+      lossCurveWidget.update(lossHistory);
+    }
+
+    // Log progress every 10 epochs
     if (epoch % 10 === 0) {
-      const lossValue = await loss.data();
       const now = Date.now();
       const epochTime = (now - lastLogTime) / 10; // ms per epoch
       timings.push(epochTime);
@@ -94,10 +116,8 @@ export async function trainModel(): Promise<NormalizingFlow> {
     x.dispose();
     loss.dispose();
 
-    // Yield to browser every 10 iterations
-    if (epoch % 10 === 0) {
-      await tf.nextFrame();
-    }
+    // Yield to browser every epoch for smooth visualization
+    await tf.nextFrame();
   }
 
   console.log('Training complete!');

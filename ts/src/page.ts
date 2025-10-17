@@ -1,5 +1,6 @@
 import { initWidget as initFlowVisualization } from './flow-visualization';
 import { initWidget as initLinearTransform } from './linear-transform';
+import { initWidget as initLossCurve } from './loss-curve-widget';
 import { NormalizingFlow } from './model';
 import { initWidget as initMoonsDataset } from './moons-widget';
 import type { Tensor2D } from './tf-types';
@@ -22,8 +23,15 @@ void (async(): Promise<void> => {
     initMoonsDataset(moonsDatasetContainer);
   }
 
-  // Create model
-  const flow = new NormalizingFlow(2);
+  // Loss curve widget
+  const lossCurveContainer = el(document, '#loss-curve-widget');
+  let lossCurveWidget: ReturnType<typeof initLossCurve> | undefined;
+  if (lossCurveContainer instanceof HTMLDivElement) {
+    lossCurveWidget = initLossCurve(lossCurveContainer);
+  }
+
+  // Create model (match training configuration)
+  let flow = new NormalizingFlow(2);
   console.log('Created normalizing flow with 2 coupling layers');
 
   // Try to load weights from weights.json
@@ -52,15 +60,8 @@ void (async(): Promise<void> => {
     trainBtn.disabled = true;
     trainStatus.textContent = 'Training...';
 
-    const trainedFlow = await trainModel();
-
-    // Copy weights from trained model to our model by saving and reloading
-    // (This is a workaround - ideally we'd copy weights directly)
-    const tempWeights = trainedFlow.getTrainableWeights().map(w => w.read());
-    const ourWeights = flow.getTrainableWeights();
-    ourWeights.forEach((weight, i) => {
-      weight.write(tempWeights[i]);
-    });
+    // Replace the flow model with the trained one
+    flow = await trainModel(lossCurveWidget);
 
     trainStatus.textContent = 'Training complete!';
     trainBtn.disabled = false;
