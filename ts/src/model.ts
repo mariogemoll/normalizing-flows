@@ -100,6 +100,14 @@ export class CouplingLayer {
       ...this.shiftNet.getModel().trainableWeights
     ];
   }
+
+  getScaleNet(): MLP {
+    return this.scaleNet;
+  }
+
+  getShiftNet(): MLP {
+    return this.shiftNet;
+  }
 }
 
 export class NormalizingFlow {
@@ -169,5 +177,80 @@ export class NormalizingFlow {
       weights.push(...layer.getTrainableWeights());
     }
     return weights;
+  }
+
+  /**
+   * Save model weights using TensorFlow.js format
+   * Downloads weights as model.json and binary files
+   * Usage from console: await flow.saveWeights()
+   */
+  async saveWeights(): Promise<void> {
+    console.log('Saving model weights in TensorFlow.js format...');
+
+    // Create a container model that holds all layers
+    const containerModel = tf.sequential();
+
+    for (const layer of this.layers) {
+      // Add scale and shift networks to container
+      const scaleModel = layer.getScaleNet().getModel();
+      const shiftModel = layer.getShiftNet().getModel();
+
+      for (const tfLayer of scaleModel.layers) {
+        containerModel.add(tfLayer);
+      }
+      for (const tfLayer of shiftModel.layers) {
+        containerModel.add(tfLayer);
+      }
+    }
+
+    // Save to downloads folder
+    // Note: TensorFlow.js standard format uses two files:
+    //   - model.json (architecture + metadata)
+    //   - model.weights.bin (binary weights)
+    // This is the recommended format for portability and caching
+    await containerModel.save('downloads://model');
+    console.log('Model weights saved! Check your downloads folder for:');
+    console.log('  - model.json');
+    console.log('  - model.weights.bin');
+    console.log('Move both files to the ts/ directory to load on startup.');
+  }
+
+  /**
+   * Load model weights from TensorFlow.js format
+   * Usage: await flow.loadWeights('path/to/model.json')
+   */
+  async loadWeights(modelPath: string): Promise<boolean> {
+    console.log('Loading model weights from TensorFlow.js format...');
+
+    try {
+      const loadedModel = await tf.loadLayersModel(modelPath) as tfjs.Sequential;
+
+      // Extract weights from loaded model and distribute to our layers
+      const allWeights = loadedModel.getWeights();
+      let weightIdx = 0;
+
+      for (const layer of this.layers) {
+        const scaleModel = layer.getScaleNet().getModel();
+        const shiftModel = layer.getShiftNet().getModel();
+
+        // Set scale network weights
+        const scaleWeightCount = scaleModel.getWeights().length;
+        const scaleWeights = allWeights.slice(weightIdx, weightIdx + scaleWeightCount);
+        scaleModel.setWeights(scaleWeights);
+        weightIdx += scaleWeightCount;
+
+        // Set shift network weights
+        const shiftWeightCount = shiftModel.getWeights().length;
+        const shiftWeights = allWeights.slice(weightIdx, weightIdx + shiftWeightCount);
+        shiftModel.setWeights(shiftWeights);
+        weightIdx += shiftWeightCount;
+      }
+
+      console.log('Model weights loaded successfully from TensorFlow.js format');
+      return true;
+    } catch (error) {
+      console.error('Failed to load weights:', error);
+      return false;
+    }
   }
 }
