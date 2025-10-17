@@ -108,7 +108,7 @@ export function initWidget(container: HTMLDivElement, state: TrainDataState): vo
     const colors = new Array<string>(coords.length).fill('#4169E1');
 
     // Draw scatter plot
-    drawScatter(ctx, xScale, yScale, coords, colors);
+    drawScatter(ctx, xScale, yScale, coords, colors, undefined, { radius: 1.5, alpha: 0.3 });
   }
 
   function generateData(): void {

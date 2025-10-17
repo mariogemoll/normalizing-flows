@@ -128,7 +128,7 @@ export function initWidget(container: HTMLDivElement, frames: Tensor2D[]): void 
     const colors = new Array<string>(coords.length).fill('#4169E1');
 
     // Draw scatter plot
-    drawScatter(ctx, xScale, yScale, coords, colors);
+    drawScatter(ctx, xScale, yScale, coords, colors, undefined, { radius: 1.5, alpha: 0.3 });
 
     // Update counter
     frameCounter.textContent = `${frameIndex} / ${frames.length - 1}`;
