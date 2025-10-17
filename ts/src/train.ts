@@ -1,6 +1,6 @@
 import { NormalizingFlow } from './model';
 import { makeMoons } from './moons-dataset';
-import type { PageState } from './page-state';
+import type { PipelineState } from './page-state';
 import type { Variable } from './tf-types';
 import type { TrainingWidget } from './training-widget';
 import type { Pair } from './web-ui-common/types';
@@ -10,7 +10,7 @@ import type { Pair } from './web-ui-common/types';
  * Returns the trained model
  */
 export async function trainModel(
-  state: PageState,
+  state: PipelineState,
   trainingWidget?: TrainingWidget
 ): Promise<NormalizingFlow> {
   console.log('Starting training...');

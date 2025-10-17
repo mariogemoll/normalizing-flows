@@ -2,7 +2,7 @@ import { initWidget as initFlowVisualization } from './flow-visualization';
 import { loadLossHistory, saveLossHistory } from './loss-history';
 import { NormalizingFlow } from './model';
 import { initWidget as initMoonsDataset } from './moons-widget';
-import { createPageState, type TrainingState } from './page-state';
+import { createPipelineState, type TrainingState } from './page-state';
 import type { Tensor2D } from './tf-types';
 import { trainModel } from './train';
 import { initWidget as initTraining } from './training-widget';
@@ -20,8 +20,8 @@ export async function initPipeline(containers: PipelineContainers): Promise<void
   // Wait for TensorFlow to be ready before doing anything
   await tf.ready();
 
-  // Create page-wide state
-  const state = createPageState(8, 1000); // 8 layers, 1000 epochs
+  // Create pipeline state
+  const state = createPipelineState(8, 1000); // 8 layers, 1000 epochs
 
   // Moons dataset widget
   initMoonsDataset(containers.moonsDataset, state);

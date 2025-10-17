@@ -4,15 +4,18 @@ import type { Tensor2D } from './tf-types';
 export type TrainingState = 'not_started' | 'training' | 'paused' | 'completed';
 
 /**
- * Page-wide state object
+ * Pipeline state object
  */
-export interface PageState {
+export interface PipelineState {
   numLayers: number;
   numEpochs: number;
   trainData: Tensor2D | null;
   model: NormalizingFlow | null;
   trainingState: TrainingState;
 }
+
+// Legacy alias for backwards compatibility
+export type PageState = PipelineState;
 
 /**
  * Interface for widgets that need model access
@@ -37,9 +40,9 @@ export interface TrainingConfigState {
 }
 
 /**
- * Create initial page state
+ * Create initial pipeline state
  */
-export function createPageState(numLayers = 8, numEpochs = 100): PageState {
+export function createPipelineState(numLayers = 8, numEpochs = 100): PipelineState {
   return {
     numLayers,
     numEpochs,
@@ -48,3 +51,6 @@ export function createPageState(numLayers = 8, numEpochs = 100): PageState {
     trainingState: 'not_started'
   };
 }
+
+// Legacy alias for backwards compatibility
+export const createPageState = createPipelineState;
