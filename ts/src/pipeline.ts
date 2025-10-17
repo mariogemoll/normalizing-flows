@@ -11,9 +11,6 @@ export interface PipelineContainers {
   moonsDataset: HTMLDivElement;
   training: HTMLDivElement;
   flowVisualization: HTMLDivElement;
-  trainButton: HTMLButtonElement;
-  resetButton: HTMLButtonElement;
-  trainStatus: HTMLSpanElement;
 }
 
 export async function initPipeline(containers: PipelineContainers): Promise<void> {
@@ -30,6 +27,11 @@ export async function initPipeline(containers: PipelineContainers): Promise<void
   const trainingWidget = initTraining(containers.training);
   trainingWidget.setMaxEpochs(state.numEpochs);
 
+  // Get button and status references from the widget
+  const trainButton = trainingWidget.trainButton;
+  const resetButton = trainingWidget.resetButton;
+  const trainStatus = trainingWidget.statusText;
+
   // Create model using state configuration
   state.model = new NormalizingFlow(state.numLayers);
   console.log(`Created normalizing flow with ${state.numLayers} coupling layers`);
@@ -38,7 +40,7 @@ export async function initPipeline(containers: PipelineContainers): Promise<void
     const success = await state.model.loadWeights('model.json');
     if (success) {
       console.log('Loaded weights from model.json');
-      containers.trainStatus.textContent = 'Loaded pre-trained weights';
+      trainStatus.textContent = 'Loaded pre-trained weights';
       state.trainingState = 'completed';
 
       // Try to load loss history
@@ -50,11 +52,11 @@ export async function initPipeline(containers: PipelineContainers): Promise<void
       // Generate and show visualization
       updateVisualization(state.model, containers.flowVisualization);
     } else {
-      containers.trainStatus.textContent = 'Failed to load weights';
+      trainStatus.textContent = 'Failed to load weights';
     }
   } catch (error) {
     console.log('Could not load model.json:', error);
-    containers.trainStatus.textContent =
+    trainStatus.textContent =
       'No pre-trained weights found. Click "Train model" to train.';
   }
 
@@ -62,24 +64,24 @@ export async function initPipeline(containers: PipelineContainers): Promise<void
   function updateButtonStates(): void {
     switch (state.trainingState) {
     case 'training':
-      containers.trainButton.textContent = 'Pause training';
-      containers.trainButton.disabled = false;
-      containers.resetButton.disabled = true;
+      trainButton.textContent = 'Pause training';
+      trainButton.disabled = false;
+      resetButton.disabled = true;
       break;
     case 'paused':
-      containers.trainButton.textContent = 'Resume training';
-      containers.trainButton.disabled = false;
-      containers.resetButton.disabled = false;
+      trainButton.textContent = 'Resume training';
+      trainButton.disabled = false;
+      resetButton.disabled = false;
       break;
     case 'completed':
-      containers.trainButton.textContent = 'Training completed';
-      containers.trainButton.disabled = true;
-      containers.resetButton.disabled = false;
+      trainButton.textContent = 'Training completed';
+      trainButton.disabled = true;
+      resetButton.disabled = false;
       break;
     case 'not_started':
-      containers.trainButton.textContent = 'Train model';
-      containers.trainButton.disabled = false;
-      containers.resetButton.disabled = false;
+      trainButton.textContent = 'Train model';
+      trainButton.disabled = false;
+      resetButton.disabled = false;
       break;
     }
   }
@@ -88,7 +90,7 @@ export async function initPipeline(containers: PipelineContainers): Promise<void
   updateButtonStates();
 
   // Reset button handler
-  containers.resetButton.addEventListener('click', () => {
+  resetButton.addEventListener('click', () => {
     // Create new untrained model
     state.model = new NormalizingFlow(state.numLayers);
     state.trainingState = 'not_started';
@@ -98,18 +100,18 @@ export async function initPipeline(containers: PipelineContainers): Promise<void
     trainingWidget.setLossHistory([]);
 
     // Update status and visualization
-    containers.trainStatus.textContent = 'Model reset. Ready to train.';
+    trainStatus.textContent = 'Model reset. Ready to train.';
     updateVisualization(state.model, containers.flowVisualization);
     updateButtonStates();
   });
 
   // Train/Pause button handler
   // eslint-disable-next-line @typescript-eslint/no-misused-promises
-  containers.trainButton.addEventListener('click', async() => {
+  trainButton.addEventListener('click', async() => {
     if (state.trainingState === 'training') {
       // Pause training (will be handled by training loop)
       state.trainingState = 'paused';
-      containers.trainStatus.textContent = 'Pausing training...';
+      trainStatus.textContent = 'Pausing training...';
     } else if (state.trainingState !== 'completed') {
       // Start or resume training (only if not completed)
       await startTraining();
@@ -123,7 +125,7 @@ export async function initPipeline(containers: PipelineContainers): Promise<void
     // Show training in progress view
     showTrainingInProgress(containers.flowVisualization);
 
-    containers.trainStatus.textContent = 'Training...';
+    trainStatus.textContent = 'Training...';
 
     // Train and update model in state
     state.model = await trainModel(state, trainingWidget);
@@ -136,14 +138,14 @@ export async function initPipeline(containers: PipelineContainers): Promise<void
     // Update status based on final state (trainModel may have changed it to 'paused')
     switch (finalState) {
     case 'paused':
-      containers.trainStatus.textContent = 'Training paused';
+      trainStatus.textContent = 'Training paused';
       break;
     case 'completed':
-      containers.trainStatus.textContent = 'Training complete!';
+      trainStatus.textContent = 'Training complete!';
       break;
     default:
       // Should not happen, but handle gracefully
-      containers.trainStatus.textContent = 'Training finished';
+      trainStatus.textContent = 'Training finished';
     }
 
     // Update visualization

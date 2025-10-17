@@ -7,11 +7,37 @@ export interface TrainingWidget {
   setMaxEpochs: (maxEpochs: number) => void;
   getLossHistory: () => Pair<number>[];
   setLossHistory: (history: Pair<number>[]) => void;
+  trainButton: HTMLButtonElement;
+  resetButton: HTMLButtonElement;
+  statusText: HTMLSpanElement;
 }
 
 export function initWidget(container: HTMLDivElement): TrainingWidget {
   // Clear container
   container.innerHTML = '';
+
+  // Create control panel with buttons
+  const controlPanel = document.createElement('div');
+  controlPanel.style.marginBottom = '10px';
+
+  const trainButton = document.createElement('button');
+  trainButton.textContent = 'Train model';
+  trainButton.id = 'train-btn';
+  controlPanel.appendChild(trainButton);
+
+  const resetButton = document.createElement('button');
+  resetButton.textContent = 'Reset model';
+  resetButton.id = 'reset-btn';
+  resetButton.style.marginLeft = '5px';
+  controlPanel.appendChild(resetButton);
+
+  const statusText = document.createElement('span');
+  statusText.id = 'train-status';
+  statusText.style.marginLeft = '10px';
+  statusText.style.color = '#666';
+  controlPanel.appendChild(statusText);
+
+  container.appendChild(controlPanel);
 
   // Create canvas
   const canvas = document.createElement('canvas');
@@ -91,5 +117,13 @@ export function initWidget(container: HTMLDivElement): TrainingWidget {
     });
   }
 
-  return { update, setMaxEpochs, getLossHistory, setLossHistory };
+  return {
+    update,
+    setMaxEpochs,
+    getLossHistory,
+    setLossHistory,
+    trainButton,
+    resetButton,
+    statusText
+  };
 }

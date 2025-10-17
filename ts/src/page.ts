@@ -16,9 +16,6 @@ void (async(): Promise<void> => {
   await initPipeline({
     moonsDataset: el(document, '#moons-dataset-widget') as HTMLDivElement,
     training: el(document, '#training-widget') as HTMLDivElement,
-    flowVisualization: el(document, '#flow-visualization-widget') as HTMLDivElement,
-    trainButton: document.getElementById('train-btn') as HTMLButtonElement,
-    resetButton: document.getElementById('reset-btn') as HTMLButtonElement,
-    trainStatus: document.getElementById('train-status') as HTMLSpanElement
+    flowVisualization: el(document, '#flow-visualization-widget') as HTMLDivElement
   });
 })();
