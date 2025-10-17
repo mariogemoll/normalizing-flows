@@ -3,6 +3,7 @@ import { initWidget as initLinearTransform } from './linear-transform';
 import { initWidget as initLossCurve } from './loss-curve-widget';
 import { NormalizingFlow } from './model';
 import { initWidget as initMoonsDataset } from './moons-widget';
+import { createPageState } from './page-state';
 import type { Tensor2D } from './tf-types';
 import { trainModel } from './train';
 import { el } from './web-ui-common/dom';
@@ -10,6 +11,9 @@ import { el } from './web-ui-common/dom';
 void (async(): Promise<void> => {
   // Wait for TensorFlow to be ready before doing anything
   await tf.ready();
+
+  // Create page-wide state
+  const state = createPageState(2); // Start with 2 layers
 
   // Linear transform widget
   const linearTransformContainer = el(document, '#linear-transform-widget');
@@ -20,7 +24,7 @@ void (async(): Promise<void> => {
   // Moons dataset widget
   const moonsDatasetContainer = el(document, '#moons-dataset-widget');
   if (moonsDatasetContainer instanceof HTMLDivElement) {
-    initMoonsDataset(moonsDatasetContainer);
+    initMoonsDataset(moonsDatasetContainer, state);
   }
 
   // Loss curve widget
@@ -30,22 +34,22 @@ void (async(): Promise<void> => {
     lossCurveWidget = initLossCurve(lossCurveContainer);
   }
 
-  // Create model (match training configuration)
-  let flow = new NormalizingFlow(2);
-  console.log('Created normalizing flow with 2 coupling layers');
+  // Create model using state configuration
+  state.model = new NormalizingFlow(state.numLayers);
+  console.log(`Created normalizing flow with ${state.numLayers} coupling layers`);
 
-  // Try to load weights from weights.json
+  // Try to load weights from model.json
   const trainBtn = document.getElementById('train-btn') as HTMLButtonElement;
   const trainStatus = document.getElementById('train-status') as HTMLSpanElement;
   const flowVizContainer = el(document, '#flow-visualization-widget');
 
   try {
-    const success = await flow.loadWeights('model.json');
+    const success = await state.model.loadWeights('model.json');
     if (success) {
       console.log('Loaded weights from model.json');
       trainStatus.textContent = 'Loaded pre-trained weights';
       // Generate and show visualization
-      updateVisualization(flow, flowVizContainer);
+      updateVisualization(state.model, flowVizContainer);
     } else {
       trainStatus.textContent = 'Failed to load weights';
     }
@@ -60,14 +64,14 @@ void (async(): Promise<void> => {
     trainBtn.disabled = true;
     trainStatus.textContent = 'Training...';
 
-    // Replace the flow model with the trained one
-    flow = await trainModel(lossCurveWidget);
+    // Train and update model in state
+    state.model = await trainModel(state, lossCurveWidget);
 
     trainStatus.textContent = 'Training complete!';
     trainBtn.disabled = false;
 
     // Update visualization
-    updateVisualization(flow, flowVizContainer);
+    updateVisualization(state.model, flowVizContainer);
   });
 
   function updateVisualization(model: NormalizingFlow, container: Element): void {
@@ -91,12 +95,12 @@ void (async(): Promise<void> => {
     }
   }
 
-  // Expose flow globally for console access
-  interface WindowWithFlow {
-    flow: NormalizingFlow;
+  // Expose state globally for console access
+  interface WindowWithState {
+    state: typeof state;
   }
-  (window as unknown as WindowWithFlow).flow = flow;
-  console.log('Flow model available as window.flow');
-  console.log('To save weights: copy(flow.saveWeights())');
-  console.log('To load weights: flow.loadWeights(pastedJsonString)');
+  (window as unknown as WindowWithState).state = state;
+  console.log('Page state available as window.state');
+  console.log('To save weights: await state.model.saveWeights()');
+  console.log('To load weights: await state.model.loadWeights("model.json")');
 })();

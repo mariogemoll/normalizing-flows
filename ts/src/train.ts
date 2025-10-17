@@ -1,6 +1,7 @@
 import type { LossCurveWidget } from './loss-curve-widget';
 import { NormalizingFlow } from './model';
 import { makeMoons } from './moons-dataset';
+import type { LayerConfigState } from './page-state';
 import type { Variable } from './tf-types';
 import type { Pair } from './web-ui-common/types';
 
@@ -9,6 +10,7 @@ import type { Pair } from './web-ui-common/types';
  * Returns the trained model
  */
 export async function trainModel(
+  state: LayerConfigState,
   lossCurveWidget?: LossCurveWidget
 ): Promise<NormalizingFlow> {
   console.log('Starting training...');
@@ -31,9 +33,9 @@ export async function trainModel(
 
   console.log('Active backend:', tf.getBackend());
 
-  // Create model (simplified for faster testing)
-  const flow = new NormalizingFlow(2);
-  console.log('Created normalizing flow with 2 coupling layers');
+  // Create model using state configuration
+  const flow = new NormalizingFlow(state.numLayers);
+  console.log(`Created normalizing flow with ${state.numLayers} coupling layers`);
 
   // Create optimizer
   const optimizer = tf.train.adam(0.001);

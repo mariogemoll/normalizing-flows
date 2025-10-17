@@ -1,4 +1,5 @@
 import { makeMoons } from './moons-dataset';
+import type { TrainDataState } from './page-state';
 import type { Tensor2D } from './tf-types';
 import { addFrameUsingScales, drawScatter, getContext } from './web-ui-common/canvas';
 import type { Pair } from './web-ui-common/types';
@@ -32,7 +33,7 @@ export function removePlaceholder(box: HTMLDivElement): void {
   }
 }
 
-export function initWidget(container: HTMLDivElement): void {
+export function initWidget(container: HTMLDivElement, state: TrainDataState): void {
   removePlaceholder(container);
 
   // Create control panel
@@ -115,9 +116,15 @@ export function initWidget(container: HTMLDivElement): void {
     if (currentData !== null) {
       currentData.dispose();
     }
+    if (state.trainData !== null) {
+      state.trainData.dispose();
+    }
 
     const nSamples = parseInt(sampleInput.value);
     currentData = makeMoons(nSamples, 0.05);
+
+    // Update global state
+    state.trainData = currentData;
 
     updateVisualization();
   }
