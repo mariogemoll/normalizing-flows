@@ -1,5 +1,6 @@
 import { drawDistribution } from './distribution-drawing';
-import { normalPdf } from './linear-transform';
+import { createCorrectPdf, normalPdf } from './linear-transform';
+import { createSlider } from './slider';
 import { getContext } from './web-ui-common/canvas';
 import { removePlaceholder } from './web-ui-common/dom';
 import { makeScale } from './web-ui-common/util';
@@ -41,11 +42,49 @@ export function initWidget(container: HTMLDivElement): void {
   const yScale = makeScale(Y_DOMAIN, [CANVAS_HEIGHT - MARGIN, MARGIN]);
 
   // Add standard Gaussian to cell [1, 0]
-  const canvas = document.createElement('canvas');
-  canvas.width = CANVAS_WIDTH;
-  canvas.height = CANVAS_HEIGHT;
-  cells[1][0].appendChild(canvas);
+  const canvas0 = document.createElement('canvas');
+  canvas0.width = CANVAS_WIDTH;
+  canvas0.height = CANVAS_HEIGHT;
+  cells[1][0].appendChild(canvas0);
 
-  const ctx = getContext(canvas);
-  drawDistribution(ctx, normalPdf, xScale, yScale);
+  const ctx0 = getContext(canvas0);
+  drawDistribution(ctx0, normalPdf, xScale, yScale);
+
+  // Add sliders to cell [0, 1]
+  const scaleControl = createSlider('s', -0.5, 2.5, 1.0, 0.03);
+  const shiftControl = createSlider('t', -1.5, 1.5, 0.0, 0.03);
+  cells[0][1].appendChild(scaleControl.container);
+  cells[0][1].appendChild(shiftControl.container);
+
+  // Add canvas for transformed distribution to cell [1, 1]
+  const canvas1 = document.createElement('canvas');
+  canvas1.width = CANVAS_WIDTH;
+  canvas1.height = CANVAS_HEIGHT;
+  cells[1][1].appendChild(canvas1);
+
+  const ctx1 = getContext(canvas1);
+
+  // Update function
+  function update(): void {
+    const params = {
+      scale: Number(scaleControl.slider.value),
+      shift: Number(shiftControl.slider.value)
+    };
+
+    scaleControl.valueDisplay.textContent = params.scale.toFixed(2);
+    shiftControl.valueDisplay.textContent = params.shift.toFixed(2);
+
+    // Clear canvas
+    ctx1.clearRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
+
+    // Draw transformed distribution
+    drawDistribution(ctx1, createCorrectPdf(params), xScale, yScale);
+  }
+
+  // Add event listeners
+  scaleControl.slider.addEventListener('input', update);
+  shiftControl.slider.addEventListener('input', update);
+
+  // Initial draw
+  update();
 }

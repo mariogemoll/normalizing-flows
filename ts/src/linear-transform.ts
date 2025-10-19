@@ -1,4 +1,5 @@
 import { drawBaseline, drawDistribution } from './distribution-drawing';
+import { createSlider } from './slider';
 import { getContext } from './web-ui-common/canvas';
 import { removePlaceholder } from './web-ui-common/dom';
 import type { Scale } from './web-ui-common/types';
@@ -60,38 +61,6 @@ function drawUniform(
   ctx.lineTo(xScale(x1), yScale(y));
   ctx.lineTo(xScale(x1), yScale(0));
   ctx.stroke();
-}
-
-function createSlider(
-  label: string,
-  min: number,
-  max: number,
-  value: number,
-  step: number
-): { container: HTMLDivElement; slider: HTMLInputElement; valueDisplay: HTMLSpanElement } {
-  const container = document.createElement('div');
-  container.className = 'slider-control';
-
-  const labelEl = document.createElement('label');
-  labelEl.textContent = label;
-  container.appendChild(labelEl);
-
-  const slider = document.createElement('input');
-  slider.type = 'range';
-  slider.min = min.toString();
-  slider.max = max.toString();
-  slider.step = step.toString();
-  // Ensure value snaps to nearest step
-  const snappedValue = Math.round((value - min) / step) * step + min;
-  slider.value = snappedValue.toString();
-  container.appendChild(slider);
-
-  const valueDisplay = document.createElement('span');
-  valueDisplay.className = 'value-display';
-  valueDisplay.textContent = snappedValue.toFixed(2);
-  container.appendChild(valueDisplay);
-
-  return { container, slider, valueDisplay };
 }
 
 export function initWidget(container: HTMLDivElement): void {
