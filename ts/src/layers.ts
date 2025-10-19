@@ -1,6 +1,7 @@
 import { drawDistribution } from './distribution-drawing';
 import { normalPdf } from './linear-transform';
 import { getContext } from './web-ui-common/canvas';
+import { removePlaceholder } from './web-ui-common/dom';
 import { makeScale } from './web-ui-common/util';
 
 const X_DOMAIN: [number, number] = [-3, 3];
@@ -8,13 +9,6 @@ const Y_DOMAIN: [number, number] = [0, 0.5];
 const CANVAS_WIDTH = 160;
 const CANVAS_HEIGHT = 160;
 const MARGIN = 10;
-
-export function removePlaceholder(box: HTMLDivElement): void {
-  const placeholder = box.querySelector('.placeholder');
-  if (placeholder !== null) {
-    placeholder.remove();
-  }
-}
 
 export function initWidget(container: HTMLDivElement): void {
   removePlaceholder(container);

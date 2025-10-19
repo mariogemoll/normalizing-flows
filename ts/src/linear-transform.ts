@@ -1,5 +1,6 @@
 import { drawBaseline, drawDistribution } from './distribution-drawing';
 import { getContext } from './web-ui-common/canvas';
+import { removePlaceholder } from './web-ui-common/dom';
 import type { Scale } from './web-ui-common/types';
 import { makeScale } from './web-ui-common/util';
 
@@ -12,13 +13,6 @@ const CANVAS_WIDTH = 300;
 const CANVAS_HEIGHT_STANDARD = 120;
 const CANVAS_HEIGHT_TALL = 1020;
 const MARGIN = 10;
-
-export function removePlaceholder(box: HTMLDivElement): void {
-  const placeholder = box.querySelector('.placeholder');
-  if (placeholder !== null) {
-    placeholder.remove();
-  }
-}
 
 export interface TransformParams {
   scale: number;
