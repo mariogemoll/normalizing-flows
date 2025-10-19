@@ -13,9 +13,11 @@ void (async(): Promise<void> => {
   }
 
   // Initialize the normalizing flow training pipeline
-  await initPipeline({
-    moonsDataset: el(document, '#moons-dataset-widget') as HTMLDivElement,
-    training: el(document, '#training-widget') as HTMLDivElement,
-    flowVisualization: el(document, '#flow-visualization-widget') as HTMLDivElement
-  });
+  await initPipeline(
+    el(document, '#moons-dataset-widget') as HTMLDivElement,
+    el(document, '#training-widget') as HTMLDivElement,
+    el(document, '#flow-visualization-widget') as HTMLDivElement,
+    'model.json',
+    'loss-history.bin'
+  );
 })();

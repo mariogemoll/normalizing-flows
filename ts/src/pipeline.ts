@@ -7,13 +7,13 @@ import type { Tensor2D } from './tf-types';
 import { trainModel } from './train';
 import { initWidget as initTraining } from './training-widget';
 
-export interface PipelineContainers {
-  moonsDataset: HTMLDivElement;
-  training: HTMLDivElement;
-  flowVisualization: HTMLDivElement;
-}
-
-export async function initPipeline(containers: PipelineContainers): Promise<void> {
+export async function initPipeline(
+  moonsDatasetContainer: HTMLDivElement,
+  trainingContainer: HTMLDivElement,
+  flowVisualizationContainer: HTMLDivElement,
+  modelUrl: string,
+  lossHistoryUrl: string
+): Promise<void> {
   // Wait for TensorFlow to be ready before doing anything
   await tf.ready();
 
@@ -21,10 +21,10 @@ export async function initPipeline(containers: PipelineContainers): Promise<void
   const state = createPipelineState(8, 1000); // 8 layers, 1000 epochs
 
   // Moons dataset widget
-  initMoonsDataset(containers.moonsDataset, state);
+  initMoonsDataset(moonsDatasetContainer, state);
 
   // Training widget
-  const trainingWidget = initTraining(containers.training);
+  const trainingWidget = initTraining(trainingContainer);
   trainingWidget.setMaxEpochs(state.numEpochs);
 
   // Get button and status references from the widget
@@ -37,20 +37,20 @@ export async function initPipeline(containers: PipelineContainers): Promise<void
   console.log(`Created normalizing flow with ${state.numLayers} coupling layers`);
 
   try {
-    const success = await state.model.loadWeights('model.json');
+    const success = await state.model.loadWeights(modelUrl);
     if (success) {
       console.log('Loaded weights from model.json');
       trainStatus.textContent = 'Loaded pre-trained weights';
       state.trainingState = 'completed';
 
       // Try to load loss history
-      const lossHistory = await loadLossHistory('loss-history.bin');
+      const lossHistory = await loadLossHistory(lossHistoryUrl);
       if (lossHistory) {
         trainingWidget.setLossHistory(lossHistory);
       }
 
       // Generate and show visualization
-      updateVisualization(state.model, containers.flowVisualization);
+      updateVisualization(state.model, flowVisualizationContainer);
     } else {
       trainStatus.textContent = 'Failed to load weights';
     }
@@ -101,7 +101,7 @@ export async function initPipeline(containers: PipelineContainers): Promise<void
 
     // Update status and visualization
     trainStatus.textContent = 'Model reset. Ready to train.';
-    updateVisualization(state.model, containers.flowVisualization);
+    updateVisualization(state.model, flowVisualizationContainer);
     updateButtonStates();
   });
 
@@ -123,7 +123,7 @@ export async function initPipeline(containers: PipelineContainers): Promise<void
     updateButtonStates();
 
     // Show training in progress view
-    showTrainingInProgress(containers.flowVisualization);
+    showTrainingInProgress(flowVisualizationContainer);
 
     trainStatus.textContent = 'Training...';
 
@@ -149,7 +149,7 @@ export async function initPipeline(containers: PipelineContainers): Promise<void
     }
 
     // Update visualization
-    updateVisualization(state.model, containers.flowVisualization);
+    updateVisualization(state.model, flowVisualizationContainer);
   }
 
   function showTrainingInProgress(container: HTMLDivElement): void {
