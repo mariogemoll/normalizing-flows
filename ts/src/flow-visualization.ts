@@ -1,5 +1,6 @@
 import type { Tensor2D } from './tf-types';
 import { addFrameUsingScales, drawScatter, getContext } from './web-ui-common/canvas';
+import { removePlaceholder } from './web-ui-common/dom';
 import type { Pair } from './web-ui-common/types';
 import { makeScale } from './web-ui-common/util';
 
@@ -32,13 +33,6 @@ function getAllFramesBounds(frames: Tensor2D[]): {
   }
 
   return { xMin, xMax, yMin, yMax };
-}
-
-export function removePlaceholder(box: HTMLDivElement): void {
-  const placeholder = box.querySelector('.placeholder');
-  if (placeholder !== null) {
-    placeholder.remove();
-  }
 }
 
 export interface FlowVisualizationOptions {
