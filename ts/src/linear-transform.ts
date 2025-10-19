@@ -1,4 +1,5 @@
-import { drawFunction1D, getContext } from './web-ui-common/canvas';
+import { drawBaseline, drawDistribution } from './distribution-drawing';
+import { getContext } from './web-ui-common/canvas';
 import type { Scale } from './web-ui-common/types';
 import { makeScale } from './web-ui-common/util';
 
@@ -44,35 +45,6 @@ export function createCorrectPdf(params: TransformParams): (y: number) => number
     const x = (y - params.shift) / params.scale;
     return normalPdf(x) / Math.abs(params.scale);
   };
-}
-
-function drawBaseline(
-  ctx: CanvasRenderingContext2D,
-  xScale: Scale,
-  yScale: Scale
-): void {
-  ctx.strokeStyle = 'rgba(90, 74, 58, 0.2)';
-  ctx.lineWidth = 1;
-  ctx.beginPath();
-  ctx.moveTo(xScale(X_DOMAIN[0]), yScale(0));
-  ctx.lineTo(xScale(X_DOMAIN[1]), yScale(0));
-  ctx.stroke();
-}
-
-function drawDistribution(
-  ctx: CanvasRenderingContext2D,
-  fn: (x: number) => number,
-  xScale: Scale,
-  yScale: Scale
-): void {
-  drawBaseline(ctx, xScale, yScale);
-
-  // Draw distribution - outline only
-  drawFunction1D(ctx, xScale, yScale, fn, {
-    stroke: STROKE,
-    lineWidth: 1.5,
-    sampleCount: 400
-  });
 }
 
 function drawUniform(

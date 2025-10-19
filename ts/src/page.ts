@@ -1,3 +1,4 @@
+import { initWidget as initLayers } from './layers';
 import { initWidget as initLinearTransform } from './linear-transform';
 import { initPipeline } from './pipeline';
 import { el } from './web-ui-common/dom';
@@ -10,6 +11,12 @@ void (async(): Promise<void> => {
   const linearTransformContainer = el(document, '#linear-transform-widget');
   if (linearTransformContainer instanceof HTMLDivElement) {
     initLinearTransform(linearTransformContainer);
+  }
+
+  // Layers widget
+  const layersContainer = el(document, '#layers-widget');
+  if (layersContainer instanceof HTMLDivElement) {
+    initLayers(layersContainer);
   }
 
   // Initialize the normalizing flow training pipeline
