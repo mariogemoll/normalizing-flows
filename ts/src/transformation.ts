@@ -35,6 +35,26 @@ export function createLinearTransformation(scale: number, shift: number): Transf
 }
 
 /**
+ * Creates a sigmoid transformation: y = 1 / (1 + e^(-k(x-x0)))
+ * @param k - steepness parameter (k > 0)
+ * @param x0 - horizontal shift (center point)
+ */
+export function createSigmoidTransformation(k: number, x0: number): Transformation {
+  const sigmoid = (x: number): number => 1 / (1 + Math.exp(-k * (x - x0)));
+  const logit = (y: number): number => x0 + (1 / k) * Math.log(y / (1 - y));
+
+  return {
+    f: sigmoid,
+    df: (x: number): number => {
+      const s = sigmoid(x);
+      return k * s * (1 - s);
+    },
+    fInv: logit,
+    dfInv: (y: number): number => 1 / (k * y * (1 - y))
+  };
+}
+
+/**
  * Composes multiple transformations into a single transformation.
  * The transformations are applied in order: f_n ∘ ... ∘ f_1 ∘ f_0
  */
