@@ -1,15 +1,15 @@
 import { drawDistribution } from './distribution-drawing';
-import { createCorrectPdf, normalPdf } from './linear-transform';
-import { createSlider } from './slider';
-import { getContext } from './web-ui-common/canvas';
+import { normalPdf } from './linear-transform';
+import { createSlider, type SliderElements } from './slider';
+import { addFrameUsingScales, getContext } from './web-ui-common/canvas';
 import { removePlaceholder } from './web-ui-common/dom';
 import { makeScale } from './web-ui-common/util';
 
-const X_DOMAIN: [number, number] = [-3, 3];
+const X_DOMAIN: [number, number] = [-10, 10];
 const Y_DOMAIN: [number, number] = [0, 0.5];
 const CANVAS_WIDTH = 160;
 const CANVAS_HEIGHT = 160;
-const MARGIN = 10;
+const MARGIN = 25;
 
 export function initWidget(container: HTMLDivElement): void {
   removePlaceholder(container);
@@ -37,53 +37,123 @@ export function initWidget(container: HTMLDivElement): void {
 
   container.appendChild(gridContainer);
 
-  // Create scales
+  // Create fixed scales (same for all canvases)
   const xScale = makeScale(X_DOMAIN, [MARGIN, CANVAS_WIDTH - MARGIN]);
   const yScale = makeScale(Y_DOMAIN, [CANVAS_HEIGHT - MARGIN, MARGIN]);
+  const transformYScale = makeScale(X_DOMAIN, [CANVAS_HEIGHT - MARGIN, MARGIN]);
 
-  // Add standard Gaussian to cell [1, 0]
+  // Add standard Gaussian to cell [2, 0]
   const canvas0 = document.createElement('canvas');
   canvas0.width = CANVAS_WIDTH;
   canvas0.height = CANVAS_HEIGHT;
-  cells[1][0].appendChild(canvas0);
+  cells[2][0].appendChild(canvas0);
 
   const ctx0 = getContext(canvas0);
+  addFrameUsingScales(ctx0, xScale, yScale, 5);
   drawDistribution(ctx0, normalPdf, xScale, yScale);
 
-  // Add sliders to cell [0, 1]
-  const scaleControl = createSlider('s', -0.5, 2.5, 1.0, 0.03);
-  const shiftControl = createSlider('t', -1.5, 1.5, 0.0, 0.03);
-  cells[0][1].appendChild(scaleControl.container);
-  cells[0][1].appendChild(shiftControl.container);
+  // Create 6 transformations
+  const NUM_TRANSFORMS = 6;
+  interface SliderPair {
+    scale: SliderElements;
+    shift: SliderElements;
+  }
+  const sliders: SliderPair[] = [];
+  const transformCanvases: HTMLCanvasElement[] = [];
+  const transformContexts: CanvasRenderingContext2D[] = [];
+  const distCanvases: HTMLCanvasElement[] = [];
+  const distContexts: CanvasRenderingContext2D[] = [];
 
-  // Add canvas for transformed distribution to cell [1, 1]
-  const canvas1 = document.createElement('canvas');
-  canvas1.width = CANVAS_WIDTH;
-  canvas1.height = CANVAS_HEIGHT;
-  cells[1][1].appendChild(canvas1);
+  for (let i = 0; i < NUM_TRANSFORMS; i++) {
+    // Add sliders to cell [0, i+1]
+    const scaleControl = createSlider('s', -0.5, 2.5, 1.0, 0.03);
+    const shiftControl = createSlider('t', -1.5, 1.5, 0.0, 0.03);
+    cells[0][i + 1].appendChild(scaleControl.container);
+    cells[0][i + 1].appendChild(shiftControl.container);
+    sliders.push({ scale: scaleControl, shift: shiftControl });
 
-  const ctx1 = getContext(canvas1);
+    // Add canvas for transformation visualization to cell [1, i+1]
+    const transformCanvas = document.createElement('canvas');
+    transformCanvas.width = CANVAS_WIDTH;
+    transformCanvas.height = CANVAS_HEIGHT;
+    cells[1][i + 1].appendChild(transformCanvas);
+    transformCanvases.push(transformCanvas);
+    transformContexts.push(getContext(transformCanvas));
+
+    // Add canvas for transformed distribution to cell [2, i+1]
+    const distCanvas = document.createElement('canvas');
+    distCanvas.width = CANVAS_WIDTH;
+    distCanvas.height = CANVAS_HEIGHT;
+    cells[2][i + 1].appendChild(distCanvas);
+    distCanvases.push(distCanvas);
+    distContexts.push(getContext(distCanvas));
+  }
 
   // Update function
   function update(): void {
-    const params = {
-      scale: Number(scaleControl.slider.value),
-      shift: Number(shiftControl.slider.value)
-    };
+    for (let i = 0; i < NUM_TRANSFORMS; i++) {
+      const scaleControl = sliders[i].scale;
+      const shiftControl = sliders[i].shift;
 
-    scaleControl.valueDisplay.textContent = params.scale.toFixed(2);
-    shiftControl.valueDisplay.textContent = params.shift.toFixed(2);
+      const params = {
+        scale: Number(scaleControl.slider.value),
+        shift: Number(shiftControl.slider.value)
+      };
 
-    // Clear canvas
-    ctx1.clearRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
+      scaleControl.valueDisplay.textContent = params.scale.toFixed(2);
+      shiftControl.valueDisplay.textContent = params.shift.toFixed(2);
 
-    // Draw transformed distribution
-    drawDistribution(ctx1, createCorrectPdf(params), xScale, yScale);
+      // Draw transformation visualization in row 1
+      transformContexts[i].clearRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
+
+      // Draw the transformation line y = s*x + t
+      transformContexts[i].strokeStyle = '#555';
+      transformContexts[i].lineWidth = 2;
+      transformContexts[i].beginPath();
+      const x0 = X_DOMAIN[0];
+      const x1 = X_DOMAIN[1];
+      const y0 = params.scale * x0 + params.shift;
+      const y1 = params.scale * x1 + params.shift;
+      transformContexts[i].moveTo(xScale(x0), transformYScale(y0));
+      transformContexts[i].lineTo(xScale(x1), transformYScale(y1));
+      transformContexts[i].stroke();
+
+      // Clear distribution canvas
+      distContexts[i].clearRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
+
+      // Add axes (using fixed scales)
+      addFrameUsingScales(distContexts[i], xScale, yScale, 5);
+
+      // Create composed transformation
+      const composedPdf = (y: number): number => {
+        // Compute inverse to get original x from transformed y
+        let x = y;
+        for (let j = i; j >= 0; j--) {
+          const s = Number(sliders[j].scale.slider.value);
+          const t = Number(sliders[j].shift.slider.value);
+          x = (x - t) / s;
+        }
+
+        // Compute jacobian (product of all scales)
+        let jacobian = 1;
+        for (let j = 0; j <= i; j++) {
+          const s = Number(sliders[j].scale.slider.value);
+          jacobian *= Math.abs(s);
+        }
+
+        return normalPdf(x) / jacobian;
+      };
+
+      // Draw transformed distribution
+      drawDistribution(distContexts[i], composedPdf, xScale, yScale);
+    }
   }
 
-  // Add event listeners
-  scaleControl.slider.addEventListener('input', update);
-  shiftControl.slider.addEventListener('input', update);
+  // Add event listeners to all sliders
+  for (let i = 0; i < NUM_TRANSFORMS; i++) {
+    sliders[i].scale.slider.addEventListener('input', update);
+    sliders[i].shift.slider.addEventListener('input', update);
+  }
 
   // Initial draw
   update();

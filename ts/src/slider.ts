@@ -1,4 +1,4 @@
-export interface SliderControl {
+export interface SliderElements {
   container: HTMLDivElement;
   slider: HTMLInputElement;
   valueDisplay: HTMLSpanElement;
@@ -10,7 +10,7 @@ export function createSlider(
   max: number,
   value: number,
   step: number
-): SliderControl {
+): SliderElements {
   const container = document.createElement('div');
   container.className = 'slider-control';
   container.style.display = 'flex';
