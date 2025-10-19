@@ -1,6 +1,7 @@
 import { drawDistribution } from './distribution-drawing';
 import { normalPdf } from './linear-transform';
 import { createSlider, type SliderElements } from './slider';
+import { composeTransformations, createLinearTransformation } from './transformation';
 import { addFrameUsingScales, getContext } from './web-ui-common/canvas';
 import { removePlaceholder } from './web-ui-common/dom';
 import { makeScale } from './web-ui-common/util';
@@ -29,7 +30,6 @@ export function initWidget(container: HTMLDivElement): void {
     for (let col = 0; col < 7; col++) {
       const cell = document.createElement('div');
       cell.className = 'grid-cell';
-      cell.style.border = '1px solid #ddd';
       cells[row][col] = cell;
       gridContainer.appendChild(cell);
     }
@@ -106,14 +106,15 @@ export function initWidget(container: HTMLDivElement): void {
       // Draw transformation visualization in row 1
       transformContexts[i].clearRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
 
-      // Draw the transformation line y = s*x + t
+      // Create transformation and draw the line y = f(x)
+      const transform = createLinearTransformation(params.scale, params.shift);
       transformContexts[i].strokeStyle = '#555';
       transformContexts[i].lineWidth = 2;
       transformContexts[i].beginPath();
       const x0 = X_DOMAIN[0];
       const x1 = X_DOMAIN[1];
-      const y0 = params.scale * x0 + params.shift;
-      const y1 = params.scale * x1 + params.shift;
+      const y0 = transform.f(x0);
+      const y1 = transform.f(x1);
       transformContexts[i].moveTo(xScale(x0), transformYScale(y0));
       transformContexts[i].lineTo(xScale(x1), transformYScale(y1));
       transformContexts[i].stroke();
@@ -124,24 +125,19 @@ export function initWidget(container: HTMLDivElement): void {
       // Add axes (using fixed scales)
       addFrameUsingScales(distContexts[i], xScale, yScale, 5);
 
-      // Create composed transformation
+      // Compose transformations up to i
+      const transforms = [];
+      for (let j = 0; j <= i; j++) {
+        const s = Number(sliders[j].scale.slider.value);
+        const t = Number(sliders[j].shift.slider.value);
+        transforms.push(createLinearTransformation(s, t));
+      }
+      const composed = composeTransformations(transforms);
+
+      // Compute transformed PDF using the change of variables formula
       const composedPdf = (y: number): number => {
-        // Compute inverse to get original x from transformed y
-        let x = y;
-        for (let j = i; j >= 0; j--) {
-          const s = Number(sliders[j].scale.slider.value);
-          const t = Number(sliders[j].shift.slider.value);
-          x = (x - t) / s;
-        }
-
-        // Compute jacobian (product of all scales)
-        let jacobian = 1;
-        for (let j = 0; j <= i; j++) {
-          const s = Number(sliders[j].scale.slider.value);
-          jacobian *= Math.abs(s);
-        }
-
-        return normalPdf(x) / jacobian;
+        const x = composed.fInv(y);
+        return normalPdf(x) * Math.abs(composed.dfInv(y));
       };
 
       // Draw transformed distribution

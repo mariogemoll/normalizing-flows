@@ -1,5 +1,6 @@
 import { drawBaseline, drawDistribution } from './distribution-drawing';
 import { createSlider } from './slider';
+import { createLinearTransformation } from './transformation';
 import { getContext } from './web-ui-common/canvas';
 import { removePlaceholder } from './web-ui-common/dom';
 import type { Scale } from './web-ui-common/types';
@@ -29,16 +30,18 @@ export function normalPdf(x: number): number {
 
 // Create naive and correct PDF functions
 export function createNaivePdf(params: TransformParams): (y: number) => number {
+  const transform = createLinearTransformation(params.scale, params.shift);
   return (y: number) => {
-    const x = (y - params.shift) / params.scale;
+    const x = transform.fInv(y);
     return normalPdf(x);
   };
 }
 
 export function createCorrectPdf(params: TransformParams): (y: number) => number {
+  const transform = createLinearTransformation(params.scale, params.shift);
   return (y: number) => {
-    const x = (y - params.shift) / params.scale;
-    return normalPdf(x) / Math.abs(params.scale);
+    const x = transform.fInv(y);
+    return normalPdf(x) * Math.abs(transform.dfInv(y));
   };
 }
 
