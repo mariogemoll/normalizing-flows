@@ -6,6 +6,7 @@ import { createSplineEditor, type SplineEditor } from './spline-editor';
 import {
   composeTransformations,
   createLinearTransformation,
+  createLogitTransformation,
   createSigmoidTransformation
 } from './transformation';
 import { addFrameUsingScales, getContext } from './web-ui-common/canvas';
@@ -23,19 +24,19 @@ const MARGIN = 25;
 export function initWidget(container: HTMLDivElement): void {
   removePlaceholder(container);
 
-  // Create grid container for 3 rows × 5 columns (linear + sigmoid + two B-splines)
+  // Create grid container for 3 rows × 6 columns (linear + sigmoid + B-spline + B-spline + logit)
   const gridContainer = document.createElement('div');
   gridContainer.className = 'grid-container';
   gridContainer.style.display = 'grid';
-  gridContainer.style.gridTemplateColumns = 'repeat(5, 160px)';
+  gridContainer.style.gridTemplateColumns = 'repeat(6, 160px)';
   gridContainer.style.gridTemplateRows = '80px 160px 160px';
   gridContainer.style.gap = '0';
 
-  // Create 15 empty cells (3 rows × 5 columns), store in 2D array
+  // Create 18 empty cells (3 rows × 6 columns), store in 2D array
   const cells: HTMLDivElement[][] = [];
   for (let row = 0; row < 3; row++) {
     cells[row] = [];
-    for (let col = 0; col < 5; col++) {
+    for (let col = 0; col < 6; col++) {
       const cell = document.createElement('div');
       cell.className = 'grid-cell';
       cells[row][col] = cell;
@@ -65,8 +66,8 @@ export function initWidget(container: HTMLDivElement): void {
   addFrameUsingScales(ctx0, xScale, yScale, 5);
   drawDistribution(ctx0, normalPdf, xScale, yScale);
 
-  // Create 4 transformations (linear + sigmoid + two B-splines)
-  const NUM_TRANSFORMS = 4;
+  // Create 5 transformations (linear + sigmoid + B-spline + B-spline + logit)
+  const NUM_TRANSFORMS = 5;
   interface SliderPair {
     scale: SliderElements;
     shift: SliderElements;
@@ -84,9 +85,26 @@ export function initWidget(container: HTMLDivElement): void {
   };
 
   for (let i = 0; i < NUM_TRANSFORMS; i++) {
-    if (i === 1) {
+    if (i === 0) {
+      // Linear transformation: s (scale) and t (shift)
+      const scaleControl = createSlider('s', -0.5, 2.5, 1.0, 0.03);
+      const shiftControl = createSlider('t', -1.5, 1.5, 0.0, 0.03);
+
+      cells[0][i + 1].appendChild(scaleControl.container);
+      cells[0][i + 1].appendChild(shiftControl.container);
+      sliders.push({ scale: scaleControl, shift: shiftControl });
+
+      // Add canvas for transformation visualization to cell [1, i+1]
+      const transformCanvas = document.createElement('canvas');
+      transformCanvas.width = CANVAS_WIDTH;
+      transformCanvas.height = CANVAS_HEIGHT;
+      cells[1][i + 1].appendChild(transformCanvas);
+      transformCanvases.push(transformCanvas);
+      transformContexts.push(getContext(transformCanvas));
+      bsplineEditors.push(null);
+    } else if (i === 1) {
       // Sigmoid transformation: k (steepness) and x0 (center)
-      const kControl = createSlider('k', 0.1, 10.0, 5.0, 0.1);
+      const kControl = createSlider('k', 0.1, 10.0, 1.0, 0.1);
       const x0Control = createSlider('x₀', -5.0, 5.0, 0.0, 0.1);
 
       cells[0][i + 1].appendChild(kControl.container);
@@ -152,14 +170,14 @@ export function initWidget(container: HTMLDivElement): void {
       transformCanvases.push(dummyCanvas);
       // Spline editor draws itself, so use a dummy context
       transformContexts.push(getContext(dummyCanvas));
-    } else {
-      // Linear transformation: s (scale) and t (shift)
-      const scaleControl = createSlider('s', -0.5, 2.5, 1.0, 0.03);
-      const shiftControl = createSlider('t', -1.5, 1.5, 0.0, 0.03);
+    } else if (i === 4) {
+      // Logit transformation: k (steepness) and x0 (center)
+      const kControl = createSlider('k', 0.1, 10.0, 1.0, 0.1);
+      const x0Control = createSlider('x₀', -5.0, 5.0, 0.0, 0.1);
 
-      cells[0][i + 1].appendChild(scaleControl.container);
-      cells[0][i + 1].appendChild(shiftControl.container);
-      sliders.push({ scale: scaleControl, shift: shiftControl });
+      cells[0][i + 1].appendChild(kControl.container);
+      cells[0][i + 1].appendChild(x0Control.container);
+      sliders.push({ scale: kControl, shift: x0Control });
 
       // Add canvas for transformation visualization to cell [1, i+1]
       const transformCanvas = document.createElement('canvas');
@@ -210,10 +228,18 @@ export function initWidget(container: HTMLDivElement): void {
           transform = createSigmoidTransformation(k, x0);
           numPoints = 100;
           useLogisticScale = true;
+        } else if (i === 4) {
+          // Logit transformation
+          const k = params.scale; // steepness
+          const x0 = params.shift; // center
+          transform = createLogitTransformation(k, x0);
+          numPoints = 100;
+          useLogisticScale = false; // logit outputs to R
         } else {
-          // Linear transformation
+          // Linear transformation (i === 0)
           transform = createLinearTransformation(params.scale, params.shift);
           numPoints = 2;
+          useLogisticScale = false;
         }
 
         // Draw transformation curve
@@ -223,14 +249,18 @@ export function initWidget(container: HTMLDivElement): void {
 
         const currentTransformYScale = useLogisticScale ? transformYScaleLogistic : transformYScale;
 
+        // First linear and sigmoid take input from R, logit takes input from (0,1)
+        const inputDomain = (i === 0 || i === 1) ? X_DOMAIN : X_DOMAIN_LOGISTIC;
+        const inputXScale = (i === 0 || i === 1) ? xScale : xScaleLogistic;
+
         for (let p = 0; p < numPoints; p++) {
           const t = p / (numPoints - 1);
-          const x = X_DOMAIN[0] + t * (X_DOMAIN[1] - X_DOMAIN[0]);
+          const x = inputDomain[0] + t * (inputDomain[1] - inputDomain[0]);
           const y = transform.f(x);
           if (p === 0) {
-            transformContexts[i].moveTo(xScale(x), currentTransformYScale(y));
+            transformContexts[i].moveTo(inputXScale(x), currentTransformYScale(y));
           } else {
-            transformContexts[i].lineTo(xScale(x), currentTransformYScale(y));
+            transformContexts[i].lineTo(inputXScale(x), currentTransformYScale(y));
           }
         }
         transformContexts[i].stroke();
@@ -239,7 +269,8 @@ export function initWidget(container: HTMLDivElement): void {
       // Clear distribution canvas
       distContexts[i].clearRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
 
-      // Use logistic scales for sigmoid and spline outputs
+      // Use logistic scales for outputs in (0,1): sigmoid and B-splines
+      // Use standard scales for outputs in R: first linear and logit
       const currentXScale = (i === 1 || i === 2 || i === 3) ? xScaleLogistic : xScale;
       const currentYScale = (i === 1 || i === 2 || i === 3) ? yScaleLogistic : yScale;
 
@@ -266,11 +297,16 @@ export function initWidget(container: HTMLDivElement): void {
               )
             );
           }
-        } else {
+        } else if (j === 0) {
           // Linear transformation
           const s = Number(sliders[j].scale.slider.value);
           const t = Number(sliders[j].shift.slider.value);
           transforms.push(createLinearTransformation(s, t));
+        } else if (j === 4) {
+          // Logit transformation
+          const k = Number(sliders[j].scale.slider.value);
+          const x0 = Number(sliders[j].shift.slider.value);
+          transforms.push(createLogitTransformation(k, x0));
         }
       }
       const composed = composeTransformations(transforms);
@@ -298,7 +334,7 @@ export function initWidget(container: HTMLDivElement): void {
 
   // Add event listeners to all sliders (except B-splines which have their own callbacks)
   for (let i = 0; i < NUM_TRANSFORMS; i++) {
-    if (i !== 2 && i !== 3) {
+    if (i !== 2 && i !== 3) { // Skip B-spline editors (they use updateWrapper callback)
       sliders[i].scale.slider.addEventListener('input', update);
       sliders[i].shift.slider.addEventListener('input', update);
     }

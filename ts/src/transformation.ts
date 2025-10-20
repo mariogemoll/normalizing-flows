@@ -55,6 +55,27 @@ export function createSigmoidTransformation(k: number, x0: number): Transformati
 }
 
 /**
+ * Creates a logit transformation: y = x0 + (1/k) * log(x / (1-x))
+ * Inverse of sigmoid - maps (0,1) to R
+ * @param k - steepness parameter (k > 0)
+ * @param x0 - horizontal shift (center point)
+ */
+export function createLogitTransformation(k: number, x0: number): Transformation {
+  const logit = (p: number): number => x0 + (1 / k) * Math.log(p / (1 - p));
+  const sigmoid = (x: number): number => 1 / (1 + Math.exp(-k * (x - x0)));
+
+  return {
+    f: logit,
+    df: (p: number): number => 1 / (k * p * (1 - p)),
+    fInv: sigmoid,
+    dfInv: (x: number): number => {
+      const s = sigmoid(x);
+      return k * s * (1 - s);
+    }
+  };
+}
+
+/**
  * Composes multiple transformations into a single transformation.
  * The transformations are applied in order: f_n ∘ ... ∘ f_1 ∘ f_0
  */
