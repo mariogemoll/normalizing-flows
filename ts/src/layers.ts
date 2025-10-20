@@ -23,19 +23,19 @@ const MARGIN = 25;
 export function initWidget(container: HTMLDivElement): void {
   removePlaceholder(container);
 
-  // Create grid container for 3 rows × 4 columns (linear + sigmoid + B-spline)
+  // Create grid container for 3 rows × 5 columns (linear + sigmoid + two B-splines)
   const gridContainer = document.createElement('div');
   gridContainer.className = 'grid-container';
   gridContainer.style.display = 'grid';
-  gridContainer.style.gridTemplateColumns = 'repeat(4, 160px)';
+  gridContainer.style.gridTemplateColumns = 'repeat(5, 160px)';
   gridContainer.style.gridTemplateRows = '80px 160px 160px';
   gridContainer.style.gap = '0';
 
-  // Create 12 empty cells (3 rows × 4 columns), store in 2D array
+  // Create 15 empty cells (3 rows × 5 columns), store in 2D array
   const cells: HTMLDivElement[][] = [];
   for (let row = 0; row < 3; row++) {
     cells[row] = [];
-    for (let col = 0; col < 4; col++) {
+    for (let col = 0; col < 5; col++) {
       const cell = document.createElement('div');
       cell.className = 'grid-cell';
       cells[row][col] = cell;
@@ -65,8 +65,8 @@ export function initWidget(container: HTMLDivElement): void {
   addFrameUsingScales(ctx0, xScale, yScale, 5);
   drawDistribution(ctx0, normalPdf, xScale, yScale);
 
-  // Create 3 transformations (linear + sigmoid + B-spline)
-  const NUM_TRANSFORMS = 3;
+  // Create 4 transformations (linear + sigmoid + two B-splines)
+  const NUM_TRANSFORMS = 4;
   interface SliderPair {
     scale: SliderElements;
     shift: SliderElements;
@@ -76,7 +76,7 @@ export function initWidget(container: HTMLDivElement): void {
   const transformContexts: CanvasRenderingContext2D[] = [];
   const distCanvases: HTMLCanvasElement[] = [];
   const distContexts: CanvasRenderingContext2D[] = [];
-  let bsplineEditor: SplineEditor | null = null;
+  const bsplineEditors: (SplineEditor | null)[] = [];
 
   // Create wrapper for update function so spline callback can reference it
   const updateWrapper = (): void => {
@@ -100,22 +100,50 @@ export function initWidget(container: HTMLDivElement): void {
       cells[1][i + 1].appendChild(transformCanvas);
       transformCanvases.push(transformCanvas);
       transformContexts.push(getContext(transformCanvas));
+      bsplineEditors.push(null);
     } else if (i === 2) {
-      // B-spline: interactive editor (control points guide the curve)
+      // B-spline with 3 control points: interactive editor
       const initialPoints = [
         { x: 0.25, y: 0.25 },
         { x: 0.50, y: 0.50 },
         { x: 0.75, y: 0.75 }
       ];
 
-      bsplineEditor = createSplineEditor(
+      const editor = createSplineEditor(
         CANVAS_WIDTH,
         CANVAS_HEIGHT,
         initialPoints,
         updateWrapper
       );
 
-      cells[1][i + 1].appendChild(bsplineEditor.element);
+      cells[1][i + 1].appendChild(editor.element);
+      bsplineEditors.push(editor);
+
+      // No sliders for spline - push empty placeholders
+      const dummySlider = createSlider('', 0, 1, 0, 1);
+      sliders.push({ scale: dummySlider, shift: dummySlider });
+      const dummyCanvas = document.createElement('canvas');
+      transformCanvases.push(dummyCanvas);
+      // Spline editor draws itself, so use a dummy context
+      transformContexts.push(getContext(dummyCanvas));
+    } else if (i === 3) {
+      // B-spline with 4 control points: interactive editor
+      const initialPoints = [
+        { x: 0.20, y: 0.20 },
+        { x: 0.40, y: 0.40 },
+        { x: 0.60, y: 0.60 },
+        { x: 0.80, y: 0.80 }
+      ];
+
+      const editor = createSplineEditor(
+        CANVAS_WIDTH,
+        CANVAS_HEIGHT,
+        initialPoints,
+        updateWrapper
+      );
+
+      cells[1][i + 1].appendChild(editor.element);
+      bsplineEditors.push(editor);
 
       // No sliders for spline - push empty placeholders
       const dummySlider = createSlider('', 0, 1, 0, 1);
@@ -140,6 +168,7 @@ export function initWidget(container: HTMLDivElement): void {
       cells[1][i + 1].appendChild(transformCanvas);
       transformCanvases.push(transformCanvas);
       transformContexts.push(getContext(transformCanvas));
+      bsplineEditors.push(null);
     }
 
     // Add canvas for transformed distribution to cell [2, i+1]
@@ -154,8 +183,8 @@ export function initWidget(container: HTMLDivElement): void {
   // Update function
   function update(): void {
     for (let i = 0; i < NUM_TRANSFORMS; i++) {
-      // Skip transformation visualization for B-spline (it draws itself)
-      if (i !== 2) {
+      // Skip transformation visualization for B-splines (they draw themselves)
+      if (i !== 2 && i !== 3) {
         const scaleControl = sliders[i].scale;
         const shiftControl = sliders[i].shift;
 
@@ -210,9 +239,9 @@ export function initWidget(container: HTMLDivElement): void {
       // Clear distribution canvas
       distContexts[i].clearRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
 
-      // Use logistic scales for spline and sigmoid outputs
-      const currentXScale = (i === 1 || i === 2) ? xScaleLogistic : xScale;
-      const currentYScale = (i === 1 || i === 2) ? yScaleLogistic : yScale;
+      // Use logistic scales for sigmoid and spline outputs
+      const currentXScale = (i === 1 || i === 2 || i === 3) ? xScaleLogistic : xScale;
+      const currentYScale = (i === 1 || i === 2 || i === 3) ? yScaleLogistic : yScale;
 
       // Add axes (using appropriate scales)
       addFrameUsingScales(distContexts[i], currentXScale, currentYScale, 5);
@@ -225,10 +254,11 @@ export function initWidget(container: HTMLDivElement): void {
           const k = Number(sliders[j].scale.slider.value);
           const x0 = Number(sliders[j].shift.slider.value);
           transforms.push(createSigmoidTransformation(k, x0));
-        } else if (j === 2) {
+        } else if (j === 2 || j === 3) {
           // B-spline transformation
-          if (bsplineEditor) {
-            const controlPoints = bsplineEditor.getControlPoints();
+          const editor = bsplineEditors[j];
+          if (editor) {
+            const controlPoints = editor.getControlPoints();
             transforms.push(
               createBSplineTransformation(
                 controlPoints.map(p => p.x),
@@ -266,9 +296,9 @@ export function initWidget(container: HTMLDivElement): void {
     }
   }
 
-  // Add event listeners to all sliders (except B-spline which has its own callback)
+  // Add event listeners to all sliders (except B-splines which have their own callbacks)
   for (let i = 0; i < NUM_TRANSFORMS; i++) {
-    if (i !== 2) {
+    if (i !== 2 && i !== 3) {
       sliders[i].scale.slider.addEventListener('input', update);
       sliders[i].shift.slider.addEventListener('input', update);
     }
