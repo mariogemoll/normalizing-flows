@@ -1,4 +1,5 @@
 import { initWidget as initLayers } from './layers';
+import { initWidget as initLayersFirstTry } from './layers-firsttry';
 import { initWidget as initLinearTransform } from './linear-transform';
 import { initPipeline } from './pipeline';
 import { el } from './web-ui-common/dom';
@@ -11,6 +12,12 @@ void (async(): Promise<void> => {
   const linearTransformContainer = el(document, '#linear-transform-widget');
   if (linearTransformContainer instanceof HTMLDivElement) {
     initLinearTransform(linearTransformContainer);
+  }
+
+  // Layers (first try) widget
+  const layersFirstTryContainer = el(document, '#layers-firsttry-widget');
+  if (layersFirstTryContainer instanceof HTMLDivElement) {
+    initLayersFirstTry(layersFirstTryContainer);
   }
 
   // Layers widget
