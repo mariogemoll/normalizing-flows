@@ -1,6 +1,6 @@
 import { drawDistribution } from './distribution-drawing';
-import { initLinearLayer } from './linear-layer';
 import { normalPdf } from './linear-transform';
+import { initSigmoidLayer } from './sigmoid-layer';
 import { composeTransformations, type Transformation } from './transformation';
 import { addFrameUsingScales, getContext } from './web-ui-common/canvas';
 import { removePlaceholder } from './web-ui-common/dom';
@@ -17,25 +17,23 @@ const Y_DOMAIN: [number, number] = [0, 0.5];
 const CANVAS_WIDTH = 160;
 const CANVAS_HEIGHT = 160;
 const MARGIN = 25;
-const EDITOR_HEIGHT = 80;
 
 export function initWidget(container: HTMLDivElement): void {
   removePlaceholder(container);
 
   // Define layer configurations: [initFunction, parameters]
   const layerConfigs: [LayerInitFn, unknown[]][] = [
-    [initLinearLayer as LayerInitFn, [1.0, 0.0]],
-    [initLinearLayer as LayerInitFn, [1.0, 0.0]]
+    [initSigmoidLayer as LayerInitFn, [1.0, 0.0]]
   ];
 
   const numLayers = layerConfigs.length;
 
-  // Create 2×(n+1) grid
+  // Create 2×(n+1) grid with equal row heights
   const gridContainer = document.createElement('div');
   gridContainer.className = 'grid-container';
   gridContainer.style.display = 'grid';
   gridContainer.style.gridTemplateColumns = `repeat(${numLayers + 1}, ${CANVAS_WIDTH}px)`;
-  gridContainer.style.gridTemplateRows = `${EDITOR_HEIGHT}px ${CANVAS_HEIGHT}px`;
+  gridContainer.style.gridTemplateRows = `${CANVAS_HEIGHT}px ${CANVAS_HEIGHT}px`;
   gridContainer.style.gap = '0';
 
   // Create cells array
