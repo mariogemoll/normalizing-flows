@@ -1,5 +1,6 @@
 import { drawDistribution } from './distribution-drawing';
 import { normalPdf } from './linear-transform';
+import { initLogitLayer } from './logit-layer';
 import { initSigmoidLayer } from './sigmoid-layer';
 import { composeTransformations, type Transformation } from './transformation';
 import { addFrameUsingScales, getContext } from './web-ui-common/canvas';
@@ -23,7 +24,8 @@ export function initWidget(container: HTMLDivElement): void {
 
   // Define layer configurations: [initFunction, parameters]
   const layerConfigs: [LayerInitFn, unknown[]][] = [
-    [initSigmoidLayer as LayerInitFn, [1.0, 0.0]]
+    [initSigmoidLayer as LayerInitFn, [1.0, 0.0]],
+    [initLogitLayer as LayerInitFn, [1.0, 0.0]]
   ];
 
   const numLayers = layerConfigs.length;
