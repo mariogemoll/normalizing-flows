@@ -91,9 +91,6 @@ export function createBSplineTransformation(
     knots.push(1);
   }
 
-  console.log('[BSpline] Control points:', controlPointsX, controlPointsY);
-  console.log('[BSpline] Knot vector:', knots);
-
   // Evaluate B-spline curve at parameter u
   const evaluateX = (u: number): number => {
     let x = 0;
