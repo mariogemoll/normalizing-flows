@@ -29,20 +29,20 @@ export function initWidget(container: HTMLDivElement): void {
   // outputDomain specifies the x-domain for the distribution after this layer
   // yDomain specifies the y-domain (probability density range) for the distribution
   const layerConfigs: [LayerInitFn, unknown[], [number, number], [number, number]][] = [
-    [initSigmoidLayer as LayerInitFn, [1.0, 0.0], X_DOMAIN_SMALL, Y_DOMAIN_LARGE],
+    [initSigmoidLayer as LayerInitFn, [1.1, -0.8], X_DOMAIN_SMALL, Y_DOMAIN_LARGE],
     [
       initSplineLayer as LayerInitFn,
-      [[{ x: 0.25, y: 0.25 }, { x: 0.5, y: 0.5 }, { x: 0.75, y: 0.75 }]],
+      [[{ x: 0.32, y: 0.09 }, { x: 0.44, y: 0.40 }, { x: 0.68, y: 0.74 }]],
       X_DOMAIN_SMALL,
       Y_DOMAIN_LARGE
     ],
     [
       initSplineLayer as LayerInitFn,
-      [[{ x: 0.2, y: 0.2 }, { x: 0.4, y: 0.4 }, { x: 0.6, y: 0.6 }, { x: 0.8, y: 0.8 }]],
+      [[{ x: 0.22, y: 0.24 }, { x: 0.49, y: 0.42 }, { x: 0.66, y: 0.51 }, { x: 0.72, y: 0.61 }]],
       X_DOMAIN_SMALL,
       Y_DOMAIN_LARGE
     ],
-    [initLogitLayer as LayerInitFn, [1.0, 0.0], X_DOMAIN_LARGE, Y_DOMAIN_SMALL]
+    [initLogitLayer as LayerInitFn, [0.5, -1.5], X_DOMAIN_LARGE, Y_DOMAIN_SMALL]
   ];
 
   const numLayers = layerConfigs.length;
