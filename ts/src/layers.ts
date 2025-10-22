@@ -1,3 +1,4 @@
+import { defaultMargins } from './constants';
 import { drawDistribution } from './distribution-drawing';
 import { normalPdf } from './linear-transform';
 import { initLogitLayer } from './logit-layer';
@@ -13,11 +14,10 @@ type LayerInitFn = (
   ...params: unknown[]
 ) => Transformation;
 
-const X_DOMAIN: [number, number] = [-10, 10];
+const X_DOMAIN: [number, number] = [-8, 8];
 const Y_DOMAIN: [number, number] = [0, 0.5];
 const CANVAS_WIDTH = 160;
 const CANVAS_HEIGHT = 160;
-const MARGIN = 25;
 
 export function initWidget(container: HTMLDivElement): void {
   removePlaceholder(container);
@@ -52,9 +52,15 @@ export function initWidget(container: HTMLDivElement): void {
 
   container.appendChild(gridContainer);
 
-  // Create scales
-  const xScale = makeScale(X_DOMAIN, [MARGIN, CANVAS_WIDTH - MARGIN]);
-  const yScale = makeScale(Y_DOMAIN, [CANVAS_HEIGHT - MARGIN, MARGIN]);
+  // Create scales using default margins
+  const xScale = makeScale(
+    X_DOMAIN,
+    [defaultMargins.left, CANVAS_WIDTH - defaultMargins.right]
+  );
+  const yScale = makeScale(
+    Y_DOMAIN,
+    [CANVAS_HEIGHT - defaultMargins.bottom, defaultMargins.top]
+  );
 
   // First column: empty cell in row 0, initial distribution in row 1
   const initialCanvas = document.createElement('canvas');

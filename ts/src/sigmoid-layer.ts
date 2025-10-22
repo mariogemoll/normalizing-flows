@@ -1,6 +1,13 @@
+import { defaultMargins } from './constants';
 import * as sigmoid from './sigmoid';
 import type { Transformation } from './transformation';
-import { addDot, drawFunction1D, getContext } from './web-ui-common/canvas';
+import type { Margins } from './types';
+import {
+  addDot,
+  addFrameUsingScales,
+  drawFunction1D,
+  getContext
+} from './web-ui-common/canvas';
 import { addCanvas, addDiv } from './web-ui-common/dom';
 import { makeScale } from './web-ui-common/util';
 
@@ -15,8 +22,9 @@ export function initSigmoidLayer(
   initialX0 = 0.0,
   width = 160,
   height = 160,
-  xDomain: [number, number] = [-10, 10],
-  yDomain: [number, number] = [0, 1]
+  xDomain: [number, number] = [-8, 8],
+  yDomain: [number, number] = [0, 1],
+  margins: Margins = defaultMargins
 ): Transformation {
   let k = initialK;
   let x0 = initialX0;
@@ -43,25 +51,27 @@ export function initSigmoidLayer(
   let isDragging = false;
 
   const POINT_RADIUS = 5;
-  const MARGIN = 25;
 
-  // Create scales
-  const xScale = makeScale(xDomain, [MARGIN, width - MARGIN]);
-  const yScale = makeScale(yDomain, [height - MARGIN, MARGIN]);
+  // Create scales using provided margins
+  const xScale = makeScale(xDomain, [margins.left, width - margins.right]);
+  const yScale = makeScale(yDomain, [height - margins.bottom, margins.top]);
 
   // Draw the sigmoid curve and control points
   function draw(): void {
     ctx.clearRect(0, 0, width, height);
 
-    // Draw frame
-    ctx.strokeStyle = '#ccc';
-    ctx.lineWidth = 1;
-    ctx.strokeRect(MARGIN, MARGIN, width - 2 * MARGIN, height - 2 * MARGIN);
+    // Draw frame with axes
+    addFrameUsingScales(ctx, xScale, yScale, 0);
 
     // Clip to margin area to prevent drawing outside
     ctx.save();
     ctx.beginPath();
-    ctx.rect(MARGIN, MARGIN, width - 2 * MARGIN, height - 2 * MARGIN);
+    ctx.rect(
+      margins.left,
+      margins.top,
+      width - margins.left - margins.right,
+      height - margins.top - margins.bottom
+    );
     ctx.clip();
 
     // Draw sigmoid curve using drawFunction1D
