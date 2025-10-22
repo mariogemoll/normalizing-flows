@@ -1,6 +1,7 @@
+import { defaultMargins } from './constants';
 import { drawDistribution } from './distribution-drawing';
-import { initLinearLayer } from './linear-layer';
 import { normalPdf } from './linear-transform';
+import { initSigmoidLayer } from './sigmoid-layer';
 import { composeTransformations, type Transformation } from './transformation';
 import { addFrameUsingScales, getContext } from './web-ui-common/canvas';
 import { removePlaceholder } from './web-ui-common/dom';
@@ -12,30 +13,31 @@ type LayerInitFn = (
   ...params: unknown[]
 ) => Transformation;
 
-const X_DOMAIN: [number, number] = [-10, 10];
-const Y_DOMAIN: [number, number] = [0, 0.5];
+const X_DOMAIN_SMALL: [number, number] = [0, 1];
+const X_DOMAIN_LARGE: [number, number] = [-10, 10];
+const Y_DOMAIN_SMALL: [number, number] = [0, 0.5];
+const Y_DOMAIN_LARGE: [number, number] = [0, 5];
 const CANVAS_WIDTH = 160;
 const CANVAS_HEIGHT = 160;
-const MARGIN = 25;
-const EDITOR_HEIGHT = 80;
 
 export function initWidget(container: HTMLDivElement): void {
   removePlaceholder(container);
 
-  // Define layer configurations: [initFunction, parameters]
-  const layerConfigs: [LayerInitFn, unknown[]][] = [
-    [initLinearLayer as LayerInitFn, [1.0, 0.0]],
-    [initLinearLayer as LayerInitFn, [1.0, 0.0]]
+  // Define layer configurations: [initFunction, parameters, outputDomain, yDomain]
+  // outputDomain specifies the x-domain for the distribution after this layer
+  // yDomain specifies the y-domain (probability density range) for the distribution
+  const layerConfigs: [LayerInitFn, unknown[], [number, number], [number, number]][] = [
+    [initSigmoidLayer as LayerInitFn, [1.0, 0.0], X_DOMAIN_SMALL, Y_DOMAIN_LARGE]
   ];
 
   const numLayers = layerConfigs.length;
 
-  // Create 2×(n+1) grid
+  // Create 2×(n+1) grid with equal row heights
   const gridContainer = document.createElement('div');
   gridContainer.className = 'grid-container';
   gridContainer.style.display = 'grid';
   gridContainer.style.gridTemplateColumns = `repeat(${numLayers + 1}, ${CANVAS_WIDTH}px)`;
-  gridContainer.style.gridTemplateRows = `${EDITOR_HEIGHT}px ${CANVAS_HEIGHT}px`;
+  gridContainer.style.gridTemplateRows = `${CANVAS_HEIGHT}px ${CANVAS_HEIGHT}px`;
   gridContainer.style.gap = '0';
 
   // Create cells array
@@ -52,9 +54,15 @@ export function initWidget(container: HTMLDivElement): void {
 
   container.appendChild(gridContainer);
 
-  // Create scales
-  const xScale = makeScale(X_DOMAIN, [MARGIN, CANVAS_WIDTH - MARGIN]);
-  const yScale = makeScale(Y_DOMAIN, [CANVAS_HEIGHT - MARGIN, MARGIN]);
+  // Create scales using default margins
+  const xScale = makeScale(
+    X_DOMAIN_LARGE,
+    [defaultMargins.left, CANVAS_WIDTH - defaultMargins.right]
+  );
+  const yScale = makeScale(
+    Y_DOMAIN_SMALL,
+    [CANVAS_HEIGHT - defaultMargins.bottom, defaultMargins.top]
+  );
 
   // First column: empty cell in row 0, initial distribution in row 1
   const initialCanvas = document.createElement('canvas');
@@ -85,19 +93,31 @@ export function initWidget(container: HTMLDivElement): void {
       const canvas = distributionCanvases[i];
       const ctx = getContext(canvas);
       ctx.clearRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
-      addFrameUsingScales(ctx, xScale, yScale, 5);
+
+      // Get the output domain and y domain for this layer
+      const [, , outputDomain, yDomain] = layerConfigs[i];
+      const xScale = makeScale(
+        outputDomain, [defaultMargins.left, CANVAS_WIDTH - defaultMargins.right]
+      );
+      const currentYScale = makeScale(
+        yDomain, [CANVAS_HEIGHT - defaultMargins.bottom, defaultMargins.top]
+      );
+
+      addFrameUsingScales(ctx, xScale, currentYScale, 5);
 
       // Compose transformations up to and including this layer
       const transforms = layers.slice(0, i + 1);
       const composed = composeTransformations(transforms);
 
       // Transform the PDF
+      // For a point x in the transformed space, we need to find the original point
+      // and apply the change of variables formula: p_X(x) = p_Y(f^{-1}(x)) * |df^{-1}/dx|
       const transformedPdf = (x: number): number => {
-        const y = composed.f(x);
-        return normalPdf(y) * Math.abs(composed.df(y));
+        const y = composed.fInv(x);
+        return normalPdf(y) * Math.abs(composed.dfInv(x));
       };
 
-      drawDistribution(ctx, transformedPdf, xScale, yScale);
+      drawDistribution(ctx, transformedPdf, xScale, currentYScale);
     }
   }
 
