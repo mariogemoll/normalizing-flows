@@ -3,6 +3,7 @@ import { drawDistribution } from './distribution-drawing';
 import { normalPdf } from './linear-transform';
 import { initLogitLayer } from './logit-layer';
 import { initSigmoidLayer } from './sigmoid-layer';
+import { initSplineLayer } from './spline-layer';
 import { composeTransformations, type Transformation } from './transformation';
 import { addFrameUsingScales, getContext } from './web-ui-common/canvas';
 import { removePlaceholder } from './web-ui-common/dom';
@@ -29,6 +30,18 @@ export function initWidget(container: HTMLDivElement): void {
   // yDomain specifies the y-domain (probability density range) for the distribution
   const layerConfigs: [LayerInitFn, unknown[], [number, number], [number, number]][] = [
     [initSigmoidLayer as LayerInitFn, [1.0, 0.0], X_DOMAIN_SMALL, Y_DOMAIN_LARGE],
+    [
+      initSplineLayer as LayerInitFn,
+      [
+        [
+          { x: 0.25, y: 0.25 },
+          { x: 0.5, y: 0.5 },
+          { x: 0.75, y: 0.75 }
+        ]
+      ],
+      X_DOMAIN_SMALL,
+      Y_DOMAIN_LARGE
+    ],
     [initLogitLayer as LayerInitFn, [1.0, 0.0], X_DOMAIN_LARGE, Y_DOMAIN_SMALL]
   ];
 
