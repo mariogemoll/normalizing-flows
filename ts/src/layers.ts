@@ -32,13 +32,13 @@ export function initWidget(container: HTMLDivElement): void {
     [initSigmoidLayer as LayerInitFn, [1.0, 0.0], X_DOMAIN_SMALL, Y_DOMAIN_LARGE],
     [
       initSplineLayer as LayerInitFn,
-      [
-        [
-          { x: 0.25, y: 0.25 },
-          { x: 0.5, y: 0.5 },
-          { x: 0.75, y: 0.75 }
-        ]
-      ],
+      [[{ x: 0.25, y: 0.25 }, { x: 0.5, y: 0.5 }, { x: 0.75, y: 0.75 }]],
+      X_DOMAIN_SMALL,
+      Y_DOMAIN_LARGE
+    ],
+    [
+      initSplineLayer as LayerInitFn,
+      [[{ x: 0.2, y: 0.2 }, { x: 0.4, y: 0.4 }, { x: 0.6, y: 0.6 }, { x: 0.8, y: 0.8 }]],
       X_DOMAIN_SMALL,
       Y_DOMAIN_LARGE
     ],
