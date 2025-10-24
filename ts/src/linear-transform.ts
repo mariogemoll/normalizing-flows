@@ -4,9 +4,9 @@ import { removePlaceholder } from './web-ui-common/dom';
 import type { Scale } from './web-ui-common/types';
 import { makeScale } from './web-ui-common/util';
 
-const X_DOMAIN: [number, number] = [-3, 3];
-const Y_DOMAIN_STANDARD: [number, number] = [0, 2];
-const Y_DOMAIN_TALL: [number, number] = [0, 20];
+const Z_DOMAIN: [number, number] = [-3, 3];
+const X_DOMAIN_STANDARD: [number, number] = [0, 2];
+const X_DOMAIN_TALL: [number, number] = [0, 20];
 
 const STROKE = '#555';
 const CANVAS_WIDTH = 300;
@@ -27,38 +27,38 @@ export function normalPdf(x: number): number {
 }
 
 // Create naive and correct PDF functions
-export function createNaivePdf(params: TransformParams): (y: number) => number {
-  return (y: number) => {
-    const x = (y - params.shift) / params.scale;
-    return normalPdf(x);
+export function createNaivePdf(params: TransformParams): (x: number) => number {
+  return (x: number) => {
+    const z = (x - params.shift) / params.scale;
+    return normalPdf(z);
   };
 }
 
-export function createCorrectPdf(params: TransformParams): (y: number) => number {
-  return (y: number) => {
-    const x = (y - params.shift) / params.scale;
-    return normalPdf(x) / Math.abs(params.scale);
+export function createCorrectPdf(params: TransformParams): (x: number) => number {
+  return (x: number) => {
+    const z = (x - params.shift) / params.scale;
+    return normalPdf(z) / Math.abs(params.scale);
   };
 }
 
 function drawUniform(
   ctx: CanvasRenderingContext2D,
+  zScale: Scale,
   xScale: Scale,
-  yScale: Scale,
-  x0: number,
-  x1: number,
-  y: number
+  z0: number,
+  z1: number,
+  x: number
 ): void {
-  drawBaseline(ctx, xScale, yScale);
+  drawBaseline(ctx, zScale, xScale);
 
   // Draw three sides of the rectangle (left, top, right)
   ctx.lineWidth = 1.5;
   ctx.strokeStyle = STROKE;
   ctx.beginPath();
-  ctx.moveTo(xScale(x0), yScale(0));
-  ctx.lineTo(xScale(x0), yScale(y));
-  ctx.lineTo(xScale(x1), yScale(y));
-  ctx.lineTo(xScale(x1), yScale(0));
+  ctx.moveTo(zScale(z0), xScale(0));
+  ctx.lineTo(zScale(z0), xScale(x));
+  ctx.lineTo(zScale(z1), xScale(x));
+  ctx.lineTo(zScale(z1), xScale(0));
   ctx.stroke();
 }
 
@@ -97,10 +97,10 @@ function createSlider(
 export function initWidget(container: HTMLDivElement): void {
   removePlaceholder(container);
 
-  // Create scales once - one x scale and two y scales (standard and tall)
-  const xScale = makeScale(X_DOMAIN, [MARGIN, CANVAS_WIDTH - MARGIN]);
-  const yScaleStandard = makeScale(Y_DOMAIN_STANDARD, [CANVAS_HEIGHT_STANDARD - MARGIN, MARGIN]);
-  const yScaleTall = makeScale(Y_DOMAIN_TALL, [CANVAS_HEIGHT_TALL - MARGIN, MARGIN]);
+  // Create scales once - one z scale and two x scales (standard and tall)
+  const zScale = makeScale(Z_DOMAIN, [MARGIN, CANVAS_WIDTH - MARGIN]);
+  const xScaleStandard = makeScale(X_DOMAIN_STANDARD, [CANVAS_HEIGHT_STANDARD - MARGIN, MARGIN]);
+  const xScaleTall = makeScale(X_DOMAIN_TALL, [CANVAS_HEIGHT_TALL - MARGIN, MARGIN]);
 
   // Create sliders
   const initialScale = 1.0;
@@ -145,19 +145,19 @@ export function initWidget(container: HTMLDivElement): void {
   const areaDisplays: HTMLDivElement[] = [];
 
   const labelsHTML = [
-    '<math><msub><mi>p</mi><mi>X</mi></msub><mo>(</mo><mi>x</mi><mo>)</mo></math>',
-    '<math><msub><mi>p</mi><mi>Y</mi></msub><mo>(</mo><mi>y</mi><mo>)</mo><mo>=</mo>'
-      + '<msub><mi>p</mi><mi>X</mi></msub><mo>(</mo>'
+    '<math><msub><mi>p</mi><mi>Z</mi></msub><mo>(</mo><mi>z</mi><mo>)</mo></math>',
+    '<math><msub><mi>p</mi><mi>X</mi></msub><mo>(</mo><mi>x</mi><mo>)</mo><mo>=</mo>'
+      + '<msub><mi>p</mi><mi>Z</mi></msub><mo>(</mo>'
       + '<msup><mi>f</mi><mrow><mo>-</mo><mn>1</mn></mrow></msup>'
-      + '<mo>(</mo><mi>y</mi><mo>)</mo><mo>)</mo></math><br>'
+      + '<mo>(</mo><mi>x</mi><mo>)</mo><mo>)</mo></math><br>'
       + '<span style="font-style: italic;">(naive)</span>',
-    '<math><msub><mi>p</mi><mi>Y</mi></msub><mo>(</mo><mi>y</mi><mo>)</mo><mo>=</mo>'
-      + '<msub><mi>p</mi><mi>X</mi></msub><mo>(</mo>'
+    '<math><msub><mi>p</mi><mi>X</mi></msub><mo>(</mo><mi>x</mi><mo>)</mo><mo>=</mo>'
+      + '<msub><mi>p</mi><mi>Z</mi></msub><mo>(</mo>'
       + '<msup><mi>f</mi><mrow><mo>-</mo><mn>1</mn></mrow></msup>'
-      + '<mo>(</mo><mi>y</mi><mo>)</mo><mo>)</mo>'
-      + '<mrow><mo>|</mo><mfrac><mi>d</mi><mrow><mi>d</mi><mi>y</mi></mrow></mfrac>'
+      + '<mo>(</mo><mi>x</mi><mo>)</mo><mo>)</mo>'
+      + '<mrow><mo>|</mo><mfrac><mi>d</mi><mrow><mi>d</mi><mi>x</mi></mrow></mfrac>'
       + '<msup><mi>f</mi><mrow><mo>-</mo><mn>1</mn></mrow></msup>'
-      + '<mo>(</mo><mi>y</mi><mo>)</mo><mo>|</mo></mrow></math><br>'
+      + '<mo>(</mo><mi>x</mi><mo>)</mo><mo>|</mo></mrow></math><br>'
       + '<span style="font-style: italic;">(correct)</span>'
   ];
 
@@ -220,20 +220,20 @@ export function initWidget(container: HTMLDivElement): void {
     const tStr = params.shift.toFixed(2);
     const invSStr = (1 / params.scale).toFixed(2);
 
-    cell1.innerHTML = '<math><mi>f</mi><mo>(</mo><mi>x</mi><mo>)</mo><mo>=</mo>'
-      + '<mi>s</mi><mi>x</mi><mo>+</mo><mi>t</mi><mo>=</mo>'
-      + `<mn>${sStr}</mn><mi>x</mi><mo>+</mo><mn>${tStr}</mn></math>`;
-    cell2.innerHTML = '<math><mfrac><mi>d</mi><mrow><mi>d</mi><mi>x</mi></mrow></mfrac>'
-      + '<mi>f</mi><mo>(</mo><mi>x</mi><mo>)</mo><mo>=</mo>'
+    cell1.innerHTML = '<math><mi>f</mi><mo>(</mo><mi>z</mi><mo>)</mo><mo>=</mo>'
+      + '<mi>s</mi><mi>z</mi><mo>+</mo><mi>t</mi><mo>=</mo>'
+      + `<mn>${sStr}</mn><mi>z</mi><mo>+</mo><mn>${tStr}</mn></math>`;
+    cell2.innerHTML = '<math><mfrac><mi>d</mi><mrow><mi>d</mi><mi>z</mi></mrow></mfrac>'
+      + '<mi>f</mi><mo>(</mo><mi>z</mi><mo>)</mo><mo>=</mo>'
       + `<mi>s</mi><mo>=</mo><mn>${sStr}</mn></math>`;
     cell3.innerHTML = '<math><msup><mi>f</mi><mrow><mo>-</mo><mn>1</mn></mrow></msup>'
-      + '<mo>(</mo><mi>y</mi><mo>)</mo><mo>=</mo>'
-      + '<mfrac><mrow><mi>y</mi><mo>-</mo><mi>t</mi></mrow><mi>s</mi></mfrac>'
-      + `<mo>=</mo><mfrac><mrow><mi>y</mi><mo>-</mo><mn>${tStr}</mn></mrow>`
+      + '<mo>(</mo><mi>x</mi><mo>)</mo><mo>=</mo>'
+      + '<mfrac><mrow><mi>x</mi><mo>-</mo><mi>t</mi></mrow><mi>s</mi></mfrac>'
+      + `<mo>=</mo><mfrac><mrow><mi>x</mi><mo>-</mo><mn>${tStr}</mn></mrow>`
       + `<mn>${sStr}</mn></mfrac></math>`;
-    cell4.innerHTML = '<math><mfrac><mi>d</mi><mrow><mi>d</mi><mi>y</mi></mrow></mfrac>'
+    cell4.innerHTML = '<math><mfrac><mi>d</mi><mrow><mi>d</mi><mi>x</mi></mrow></mfrac>'
       + '<msup><mi>f</mi><mrow><mo>-</mo><mn>1</mn></mrow></msup>'
-      + '<mo>(</mo><mi>y</mi><mo>)</mo><mo>=</mo>'
+      + '<mo>(</mo><mi>x</mi><mo>)</mo><mo>=</mo>'
       + '<mfrac><mn>1</mn><mi>s</mi></mfrac><mo>=</mo>'
       + `<mfrac><mn>1</mn><mn>${sStr}</mn></mfrac>`
       + `<mo>=</mo><mn>${invSStr}</mn></math>`;
@@ -251,14 +251,14 @@ export function initWidget(container: HTMLDivElement): void {
     const b = Math.max(params.shift, params.scale + params.shift);
 
     // Row 0: Uniform distributions
-    drawUniform(contexts[0], xScale, yScaleStandard, 0, 1, 1);
-    drawUniform(contexts[1], xScale, yScaleStandard, a, b, 1);
-    drawUniform(contexts[2], xScale, yScaleTall, a, b, 1 / width);
+    drawUniform(contexts[0], zScale, xScaleStandard, 0, 1, 1);
+    drawUniform(contexts[1], zScale, xScaleStandard, a, b, 1);
+    drawUniform(contexts[2], zScale, xScaleTall, a, b, 1 / width);
 
     // Row 1: Normal distributions
-    drawDistribution(contexts[3], normalPdf, xScale, yScaleStandard);
-    drawDistribution(contexts[4], createNaivePdf(params), xScale, yScaleStandard);
-    drawDistribution(contexts[5], createCorrectPdf(params), xScale, yScaleTall);
+    drawDistribution(contexts[3], normalPdf, zScale, xScaleStandard);
+    drawDistribution(contexts[4], createNaivePdf(params), zScale, xScaleStandard);
+    drawDistribution(contexts[5], createCorrectPdf(params), zScale, xScaleTall);
 
     // Update area displays
     areaDisplays[0].textContent = 'Area: 1.000';
