@@ -43,7 +43,6 @@ export function initWidget(container: HTMLDivElement): TrainingWidget {
   const canvas = document.createElement('canvas');
   canvas.width = 600;
   canvas.height = 400;
-  canvas.style.border = '1px solid #ccc';
   container.appendChild(canvas);
 
   const ctx = getContext(canvas);

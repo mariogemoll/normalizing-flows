@@ -58,7 +58,6 @@ export function initWidget(container: HTMLDivElement, state: TrainDataState): vo
   const canvas = document.createElement('canvas');
   canvas.width = CANVAS_WIDTH;
   canvas.height = CANVAS_HEIGHT;
-  canvas.style.border = '1px solid #ccc';
   canvas.style.marginTop = '10px';
   container.appendChild(canvas);
 

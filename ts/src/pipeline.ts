@@ -160,7 +160,6 @@ export async function initPipeline(
         justify-content: center;
         height: 400px;
         background: #f5f5f5;
-        border: 1px solid #ccc;
         border-radius: 4px;
       ">
         <div style="text-align: center; color: #666;">
