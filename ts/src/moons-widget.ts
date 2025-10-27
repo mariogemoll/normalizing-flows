@@ -78,17 +78,26 @@ export function initWidget(container: HTMLDivElement, state: TrainDataState): vo
     // Get data bounds
     const bounds = getDataBounds(currentData);
 
-    // Add some padding to the bounds
-    const xPadding = (bounds.xMax - bounds.xMin) * 0.1;
-    const yPadding = (bounds.yMax - bounds.yMin) * 0.1;
+    // Calculate ranges
+    const xRange = bounds.xMax - bounds.xMin;
+    const yRange = bounds.yMax - bounds.yMin;
 
-    // Create scales
+    // Use the maximum range for both axes to ensure equal scaling
+    const maxRange = Math.max(xRange, yRange);
+    const padding = maxRange * 0.1;
+
+    // Center each axis and extend by half maxRange on each side
+    const xCenter = (bounds.xMin + bounds.xMax) / 2;
+    const yCenter = (bounds.yMin + bounds.yMax) / 2;
+    const halfRange = maxRange / 2;
+
+    // Create scales with equal ranges
     const xScale = makeScale(
-      [bounds.xMin - xPadding, bounds.xMax + xPadding],
+      [xCenter - halfRange - padding, xCenter + halfRange + padding],
       [MARGIN, CANVAS_WIDTH - MARGIN]
     );
     const yScale = makeScale(
-      [bounds.yMin - yPadding, bounds.yMax + yPadding],
+      [yCenter - halfRange - padding, yCenter + halfRange + padding],
       [CANVAS_HEIGHT - MARGIN, MARGIN]
     );
 
