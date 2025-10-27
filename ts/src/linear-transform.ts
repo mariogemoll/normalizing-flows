@@ -1,18 +1,16 @@
-import { drawBaseline, drawDistribution } from './distribution-drawing';
-import { getContext } from './web-ui-common/canvas';
+import { defaultMargins } from './constants';
+import { drawDistribution } from './distribution-drawing';
+import { addFrameUsingScales, getContext } from './web-ui-common/canvas';
 import { removePlaceholder } from './web-ui-common/dom';
 import type { Scale } from './web-ui-common/types';
 import { makeScale } from './web-ui-common/util';
 
 const Z_DOMAIN: [number, number] = [-3, 3];
-const X_DOMAIN_STANDARD: [number, number] = [0, 2];
-const X_DOMAIN_TALL: [number, number] = [0, 20];
+const X_DOMAIN: [number, number] = [0, 2];
 
 const STROKE = '#555';
-const CANVAS_WIDTH = 300;
-const CANVAS_HEIGHT_STANDARD = 120;
-const CANVAS_HEIGHT_TALL = 1020;
-const MARGIN = 10;
+const CANVAS_WIDTH = 200;
+const CANVAS_HEIGHT = 160;
 
 export interface TransformParams {
   scale: number;
@@ -49,8 +47,6 @@ function drawUniform(
   z1: number,
   x: number
 ): void {
-  drawBaseline(ctx, zScale, xScale);
-
   // Draw three sides of the rectangle (left, top, right)
   ctx.lineWidth = 1.5;
   ctx.strokeStyle = STROKE;
@@ -97,17 +93,16 @@ function createSlider(
 export function initWidget(container: HTMLDivElement): void {
   removePlaceholder(container);
 
-  // Create scales once - one z scale and two x scales (standard and tall)
-  const zScale = makeScale(Z_DOMAIN, [MARGIN, CANVAS_WIDTH - MARGIN]);
-  const xScaleStandard = makeScale(X_DOMAIN_STANDARD, [CANVAS_HEIGHT_STANDARD - MARGIN, MARGIN]);
-  const xScaleTall = makeScale(X_DOMAIN_TALL, [CANVAS_HEIGHT_TALL - MARGIN, MARGIN]);
+  // Create scales once
+  const zScale = makeScale(Z_DOMAIN, [defaultMargins.left, CANVAS_WIDTH - defaultMargins.right]);
+  const xScale = makeScale(X_DOMAIN, [CANVAS_HEIGHT - defaultMargins.bottom, defaultMargins.top]);
 
   // Create sliders
   const initialScale = 1.0;
   const initialShift = 0.0;
 
-  // Scale slider: 100 steps of 0.03 between -0.5 and 2.5
-  const scaleControl = createSlider('Scale (s)', -0.5, 2.5, initialScale, 0.03);
+  // Scale slider: positive values only, 0.1 to 2.5
+  const scaleControl = createSlider('Scale (s)', 0.1, 2.5, initialScale, 0.03);
   // Shift slider: 100 steps between -1.5 and 1.5
   const shiftControl = createSlider('Shift (t)', -1.5, 1.5, initialShift, 0.03);
 
@@ -126,11 +121,11 @@ export function initWidget(container: HTMLDivElement): void {
   }
   const [cell1, cell2, cell3, cell4] = tableCells;
 
-  // Create grid container for 2 rows × 4 columns (controls + 3 canvases)
+  // Create grid container for 3 rows × 4 columns
   const gridContainer = document.createElement('div');
   gridContainer.className = 'grid-container';
 
-  // Create left column with sliders and table
+  // Create left column with sliders and table (spans all 3 rows)
   const leftColumn = document.createElement('div');
   leftColumn.className = 'left-column';
 
@@ -139,11 +134,7 @@ export function initWidget(container: HTMLDivElement): void {
   leftColumn.appendChild(table);
   gridContainer.appendChild(leftColumn);
 
-  // Create 6 canvases with area displays
-  const canvases: HTMLCanvasElement[] = [];
-  const contexts: CanvasRenderingContext2D[] = [];
-  const areaDisplays: HTMLDivElement[] = [];
-
+  // Create header labels
   const labelsHTML = [
     '<math><msub><mi>p</mi><mi>Z</mi></msub><mo>(</mo><mi>z</mi><mo>)</mo></math>',
     '<math><msub><mi>p</mi><mi>X</mi></msub><mo>(</mo><mi>x</mi><mo>)</mo><mo>=</mo>'
@@ -161,33 +152,26 @@ export function initWidget(container: HTMLDivElement): void {
       + '<span style="font-style: italic;">(correct)</span>'
   ];
 
+  // Add 3 header cells
+  for (let i = 0; i < 3; i++) {
+    const headerCell = document.createElement('div');
+    headerCell.className = 'header-cell';
+    headerCell.innerHTML = labelsHTML[i];
+    gridContainer.appendChild(headerCell);
+  }
+
+  // Create 6 canvases with area displays
+  const canvases: HTMLCanvasElement[] = [];
+  const contexts: CanvasRenderingContext2D[] = [];
+  const areaDisplays: HTMLDivElement[] = [];
+
   for (let i = 0; i < 6; i++) {
     const wrapper = document.createElement('div');
     wrapper.className = 'canvas-wrapper';
 
-    // Add label on top of first row canvases
-    if (i < 3) {
-      const labelEl = document.createElement('div');
-      labelEl.className = 'canvas-label';
-      labelEl.innerHTML = labelsHTML[i];
-      wrapper.appendChild(labelEl);
-    }
-
     const canvas = document.createElement('canvas');
-    // Only rightmost canvases (2, 5) are tall
-    const isTall = i === 2 || i === 5;
     canvas.width = CANVAS_WIDTH;
-    canvas.height = isTall ? CANVAS_HEIGHT_TALL : CANVAS_HEIGHT_STANDARD;
-
-    if (isTall) {
-      // Shift up to keep bottom aligned, accounting for first row margin
-      const firstRowMargin = i === 2 ? 30 : 0;
-      const marginTop = CANVAS_HEIGHT_TALL - CANVAS_HEIGHT_STANDARD - firstRowMargin;
-      canvas.style.cssText = `margin-top: -${marginTop}px;`;
-    } else if (i < 3) {
-      // First row canvases get top margin
-      canvas.className = 'first-row-canvas';
-    }
+    canvas.height = CANVAS_HEIGHT;
 
     wrapper.appendChild(canvas);
     canvases.push(canvas);
@@ -239,10 +223,22 @@ export function initWidget(container: HTMLDivElement): void {
       + `<mo>=</mo><mn>${invSStr}</mn></math>`;
 
     // Clear all canvases (transparent background)
-    contexts.forEach((ctx, i) => {
-      const isTall = i === 2 || i === 5;
-      const height = isTall ? CANVAS_HEIGHT_TALL : CANVAS_HEIGHT_STANDARD;
-      ctx.clearRect(0, 0, CANVAS_WIDTH, height);
+    contexts.forEach((ctx) => {
+      ctx.clearRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
+    });
+
+    // Set up clipping for all canvases (but don't draw frames yet)
+    contexts.forEach((ctx) => {
+      ctx.save();
+      // Clip to the drawable area (excluding margins)
+      ctx.beginPath();
+      ctx.rect(
+        defaultMargins.left,
+        defaultMargins.top,
+        CANVAS_WIDTH - defaultMargins.left - defaultMargins.right,
+        CANVAS_HEIGHT - defaultMargins.top - defaultMargins.bottom
+      );
+      ctx.clip();
     });
 
     // Calculate uniform distribution boundaries
@@ -250,15 +246,25 @@ export function initWidget(container: HTMLDivElement): void {
     const a = Math.min(params.shift, params.scale + params.shift);
     const b = Math.max(params.shift, params.scale + params.shift);
 
-    // Row 0: Uniform distributions
-    drawUniform(contexts[0], zScale, xScaleStandard, 0, 1, 1);
-    drawUniform(contexts[1], zScale, xScaleStandard, a, b, 1);
-    drawUniform(contexts[2], zScale, xScaleTall, a, b, 1 / width);
+    // Row 0: Uniform distributions (with clipping)
+    drawUniform(contexts[0], zScale, xScale, 0, 1, 1);
+    drawUniform(contexts[1], zScale, xScale, a, b, 1);
+    drawUniform(contexts[2], zScale, xScale, a, b, 1 / width);
 
-    // Row 1: Normal distributions
-    drawDistribution(contexts[3], normalPdf, zScale, xScaleStandard);
-    drawDistribution(contexts[4], createNaivePdf(params), zScale, xScaleStandard);
-    drawDistribution(contexts[5], createCorrectPdf(params), zScale, xScaleTall);
+    // Row 1: Normal distributions (with clipping)
+    drawDistribution(contexts[3], normalPdf, zScale, xScale);
+    drawDistribution(contexts[4], createNaivePdf(params), zScale, xScale);
+    drawDistribution(contexts[5], createCorrectPdf(params), zScale, xScale);
+
+    // Restore contexts to remove clipping
+    contexts.forEach((ctx) => {
+      ctx.restore();
+    });
+
+    // Draw frames on top (without clipping)
+    contexts.forEach((ctx) => {
+      addFrameUsingScales(ctx, zScale, xScale, 5);
+    });
 
     // Update area displays
     areaDisplays[0].textContent = 'Area: 1.000';
