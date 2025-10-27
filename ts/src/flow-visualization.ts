@@ -9,6 +9,35 @@ const CANVAS_HEIGHT = 400;
 const MARGIN = 40;
 
 /**
+ * Ease-in-out cubic function for smooth interpolation
+ * Starts slow, accelerates in the middle, slows down at the end
+ */
+function easeInOutCubic(t: number): number {
+  return t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2;
+}
+
+/**
+ * Interpolate between two frames using linear interpolation
+ * @param frame1 First frame (t=0)
+ * @param frame2 Second frame (t=1)
+ * @param t Interpolation parameter (0 to 1)
+ * @returns Array of interpolated coordinates
+ */
+function interpolateFrames(frame1: Tensor2D, frame2: Tensor2D, t: number): Pair<number>[] {
+  const data1 = frame1.arraySync();
+  const data2 = frame2.arraySync();
+
+  const result: Pair<number>[] = [];
+  for (let i = 0; i < data1.length; i++) {
+    const x = data1[i][0] + (data2[i][0] - data1[i][0]) * t;
+    const y = data1[i][1] + (data2[i][1] - data1[i][1]) * t;
+    result.push([x, y]);
+  }
+
+  return result;
+}
+
+/**
  * Get data bounds for scaling across all frames
  */
 function getAllFramesBounds(frames: Tensor2D[]): {
@@ -79,6 +108,7 @@ export function initWidget(
   frameSlider.type = 'range';
   frameSlider.min = '0';
   frameSlider.max = (frames.length - 1).toString();
+  frameSlider.step = '0.01'; // Allow smooth fractional values
   frameSlider.value = '0';
   frameSlider.style.flex = '1';
   controlPanel.appendChild(frameSlider);
@@ -164,29 +194,49 @@ export function initWidget(
   let lastFrameTime = 0;
   let isWaitingAtEnd = false;
   let isWaitingAtStart = false;
-  const FRAME_DELAY_MS = 500;
+  const TRANSITION_DURATION_MS = 800; // Duration of each frame transition
+  const FRAME_PAUSE_MS = 400; // Pause at each keyframe
   const END_PAUSE_MS = 1000;
   const START_PAUSE_MS = 1000;
 
-  function drawFrame(frameIndex: number): void {
+  /**
+   * Draw a frame with optional interpolation
+   * @param frameProgress Fractional frame index (e.g., 1.5 means halfway between frames 1 and 2)
+   */
+  function drawFrame(frameProgress: number): void {
     // Clear canvas
     ctx.clearRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
 
     // Draw frame with axes
     addFrameUsingScales(ctx, xScale, yScale, 5);
 
-    // Convert tensor data to coords array
-    const dataArray = frames[frameIndex].arraySync();
-    // eslint-disable-next-line @typescript-eslint/no-unnecessary-type-assertion
-    const coords: Pair<number>[] = (dataArray as number[][]).map(([x, y]) => [x, y]);
+    // Determine which frames to use and interpolation factor
+    const frameIndex = Math.floor(frameProgress);
+    const nextFrameIndex = Math.min(frameIndex + 1, frames.length - 1);
+    const t = frameProgress - frameIndex;
+
+    let coords: Pair<number>[];
+    if (t === 0 || frameIndex === nextFrameIndex) {
+      // No interpolation needed - we're exactly on a frame
+      const dataArray = frames[frameIndex].arraySync();
+      // eslint-disable-next-line @typescript-eslint/no-unnecessary-type-assertion
+      coords = (dataArray as number[][]).map(([x, y]) => [x, y]);
+    } else {
+      // Interpolate between frames
+      coords = interpolateFrames(frames[frameIndex], frames[nextFrameIndex], t);
+    }
+
     const colors = new Array<string>(coords.length).fill('#4169E1');
 
     // Draw scatter plot
     drawScatter(ctx, xScale, yScale, coords, colors, undefined, { radius: 1.5, alpha: 0.3 });
 
-    // Update counter
-    frameCounter.textContent = `${frameIndex} / ${frames.length - 1}`;
-    frameSlider.value = frameIndex.toString();
+    // Update counter (show the nearest frame number)
+    const displayFrame = Math.round(frameProgress);
+    frameCounter.textContent = `${displayFrame} / ${frames.length - 1}`;
+
+    // Update slider with smooth fractional value
+    frameSlider.value = frameProgress.toString();
   }
 
   function play(): void {
@@ -196,40 +246,65 @@ export function initWidget(
     playButton.textContent = 'Pause';
     lastFrameTime = performance.now();
     isWaitingAtStart = true; // Start with initial pause
+    let isTransitioning = false;
+    let transitionStartFrame = 0;
 
     const animate = (timestamp: number): void => {
       const elapsed = timestamp - lastFrameTime;
-      let requiredDelay = FRAME_DELAY_MS;
 
       if (isWaitingAtStart) {
-        requiredDelay = START_PAUSE_MS;
-      } else if (isWaitingAtEnd) {
-        requiredDelay = END_PAUSE_MS;
-      }
-
-      if (elapsed >= requiredDelay) {
-        if (isWaitingAtStart) {
-          // Start pause is over, begin animation
+        // Waiting at the start
+        if (elapsed >= START_PAUSE_MS) {
           isWaitingAtStart = false;
-          currentFrame = 1; // Move to second frame
-        } else if (isWaitingAtEnd) {
-          // End pause is over, restart from beginning
+          isTransitioning = true;
+          transitionStartFrame = 0;
+          lastFrameTime = timestamp;
+        }
+      } else if (isWaitingAtEnd) {
+        // Waiting at the end
+        if (elapsed >= END_PAUSE_MS) {
           isWaitingAtEnd = false;
           isWaitingAtStart = true;
           currentFrame = 0;
-        } else {
-          // Advance to next frame
-          currentFrame = currentFrame + 1;
+          drawFrame(currentFrame);
+          lastFrameTime = timestamp;
+        }
+      } else if (isTransitioning) {
+        // Transitioning between frames
+        const transitionProgress = Math.min(elapsed / TRANSITION_DURATION_MS, 1);
+        const easedProgress = easeInOutCubic(transitionProgress);
+
+        // Calculate fractional frame position
+        const frameProgress = transitionStartFrame + easedProgress;
+        drawFrame(frameProgress);
+
+        if (transitionProgress >= 1) {
+          // Transition complete, pause at the next frame
+          isTransitioning = false;
+          currentFrame = transitionStartFrame + 1;
 
           // Check if we've reached the end
-          if (currentFrame >= frames.length) {
-            currentFrame = frames.length - 1; // Stay on last frame
+          if (currentFrame >= frames.length - 1) {
+            currentFrame = frames.length - 1;
             isWaitingAtEnd = true;
           }
-        }
 
-        drawFrame(currentFrame);
-        lastFrameTime = timestamp;
+          lastFrameTime = timestamp;
+        }
+      } else {
+        // Pausing at a keyframe
+        if (elapsed >= FRAME_PAUSE_MS) {
+          // Check if we can transition to the next frame
+          if (currentFrame < frames.length - 1) {
+            isTransitioning = true;
+            transitionStartFrame = currentFrame;
+            lastFrameTime = timestamp;
+          } else {
+            // We're at the last frame, start end pause
+            isWaitingAtEnd = true;
+            lastFrameTime = timestamp;
+          }
+        }
       }
 
       if (isPlaying) {
@@ -261,8 +336,9 @@ export function initWidget(
 
   frameSlider.addEventListener('input', () => {
     pause();
-    currentFrame = parseInt(frameSlider.value);
-    drawFrame(currentFrame);
+    const frameProgress = parseFloat(frameSlider.value);
+    currentFrame = Math.floor(frameProgress);
+    drawFrame(frameProgress);
   });
 
   // Resample handler (set up after functions are defined)
