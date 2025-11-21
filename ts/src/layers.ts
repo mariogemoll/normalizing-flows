@@ -1,3 +1,7 @@
+import { addFrameUsingScales, getContext } from 'web-ui-common/canvas';
+import { removePlaceholder } from 'web-ui-common/dom';
+import { makeScale } from 'web-ui-common/util';
+
 import { defaultMargins } from './constants';
 import { drawDistribution } from './distribution-drawing';
 import { normalPdf } from './linear-transform';
@@ -5,9 +9,6 @@ import { initLogitLayer } from './logit-layer';
 import { initSigmoidLayer } from './sigmoid-layer';
 import { initSplineLayer } from './spline-layer';
 import { composeTransformations, type Transformation } from './transformation';
-import { addFrameUsingScales, getContext } from './web-ui-common/canvas';
-import { removePlaceholder } from './web-ui-common/dom';
-import { makeScale } from './web-ui-common/util';
 
 type LayerInitFn = (
   container: HTMLElement,

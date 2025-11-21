@@ -1,15 +1,16 @@
-import { defaultMargins } from './constants';
-import { createBSplineTransformation } from './spline';
-import type { Transformation } from './transformation';
-import type { Margins } from './types';
 import {
   addDot,
   addFrameUsingScales,
   drawFunction1D,
   getContext
-} from './web-ui-common/canvas';
-import { addCanvas, addDiv } from './web-ui-common/dom';
-import { makeScale } from './web-ui-common/util';
+} from 'web-ui-common/canvas';
+import { addCanvas, addDiv } from 'web-ui-common/dom';
+import { makeScale } from 'web-ui-common/util';
+
+import { defaultMargins } from './constants';
+import { createBSplineTransformation } from './spline';
+import type { Transformation } from './transformation';
+import type { Margins } from './types';
 
 interface ControlPoint {
   x: number; // Normalized 0-1

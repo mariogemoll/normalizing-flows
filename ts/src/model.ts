@@ -1,6 +1,6 @@
 import type * as tfjs from '@tensorflow/tfjs';
-
-import type { LayerVariable,Tensor1D, Tensor2D } from './tf-types';
+import type { FlowModel } from 'flow-models-common/model-interface';
+import type { LayerVariable,Tensor1D, Tensor2D } from 'flow-models-common/tf-types';
 
 export class MLP {
   private model: tfjs.Sequential;
@@ -49,15 +49,15 @@ export class CouplingLayer {
 
     // Apply transformation
     const y1 = x1;
-    // eslint-disable-next-line @typescript-eslint/no-unnecessary-type-assertion
-    const y2 = tf.add(tf.mul(tf.exp(s), x2), t) as Tensor2D;
+
+    const y2 = tf.add(tf.mul(tf.exp(s), x2), t);
 
     // Compute log determinant
-    // eslint-disable-next-line @typescript-eslint/no-unnecessary-type-assertion
-    const logDet = tf.sum(s, 1) as Tensor1D;
+
+    const logDet = tf.sum<Tensor1D>(s, 1);
 
     // Concatenate output
-    // eslint-disable-next-line @typescript-eslint/no-unnecessary-type-assertion
+
     const y = (this.flip
       ? tf.concat([y2, y1], 1)
       : tf.concat([y1, y2], 1)) as Tensor2D;
@@ -79,14 +79,14 @@ export class CouplingLayer {
 
     // Apply inverse transformation
     const x1 = y1;
-    // eslint-disable-next-line @typescript-eslint/no-unnecessary-type-assertion
-    const x2 = tf.mul(tf.sub(y2, t), tf.exp(tf.neg(s))) as Tensor2D;
+
+    const x2 = tf.mul(tf.sub(y2, t), tf.exp(tf.neg(s)));
 
     // Compute log determinant
-    const logDet = tf.neg(tf.sum(s, 1)) as Tensor1D;
+    const logDet = tf.neg(tf.sum<Tensor1D>(s, 1));
 
     // Concatenate output
-    // eslint-disable-next-line @typescript-eslint/no-unnecessary-type-assertion
+
     const x = (this.flip
       ? tf.concat([x2, x1], 1)
       : tf.concat([x1, x2], 1)) as Tensor2D;
@@ -110,7 +110,7 @@ export class CouplingLayer {
   }
 }
 
-export class NormalizingFlow {
+export class NormalizingFlow implements FlowModel {
   private layers: CouplingLayer[];
 
   constructor(numLayers: number) {
@@ -154,6 +154,14 @@ export class NormalizingFlow {
 
       return [xs, logDet];
     });
+  }
+
+  /**
+   * Generate samples from noise (implements GenerativeModel interface)
+   * For normalizing flows, this is the same as inverse()
+   */
+  generate(z: Tensor2D): [Tensor2D[], Tensor1D | null] {
+    return this.inverse(z);
   }
 
   computeLoss(x: Tensor2D): tfjs.Scalar {

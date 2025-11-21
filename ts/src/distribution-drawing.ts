@@ -1,5 +1,5 @@
-import { drawFunction1D } from './web-ui-common/canvas';
-import type { Scale } from './web-ui-common/types';
+import { drawFunction1D } from 'web-ui-common/canvas';
+import type { Scale } from 'web-ui-common/types';
 
 const STROKE = '#555';
 

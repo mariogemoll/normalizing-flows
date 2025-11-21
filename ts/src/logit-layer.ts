@@ -1,15 +1,16 @@
-import { defaultMargins } from './constants';
-import * as logit from './logit';
-import type { Transformation } from './transformation';
-import type { Margins } from './types';
 import {
   addDot,
   addFrameUsingScales,
   drawFunction1D,
   getContext
-} from './web-ui-common/canvas';
-import { addCanvas, addDiv } from './web-ui-common/dom';
-import { makeScale } from './web-ui-common/util';
+} from 'web-ui-common/canvas';
+import { addCanvas, addDiv } from 'web-ui-common/dom';
+import { makeScale } from 'web-ui-common/util';
+
+import { defaultMargins } from './constants';
+import * as logit from './logit';
+import type { Transformation } from './transformation';
+import type { Margins } from './types';
 
 /**
  * Initializes a logit layer: y = x0 + (1/k) * log(x / (1-x))

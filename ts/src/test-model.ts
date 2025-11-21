@@ -1,7 +1,8 @@
-import './tf-types';
+import 'flow-models-common/tf-types';
+
+import { makeMoons } from 'flow-models-common/moons-dataset';
 
 import { NormalizingFlow } from './model';
-import { makeMoons } from './moons-dataset';
 
 /**
  * Simple test to verify the model works

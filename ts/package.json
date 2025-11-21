@@ -17,5 +17,9 @@
     "stylelint-config-standard": "^39.0.1",
     "typescript": "^5.9.3",
     "typescript-eslint": "^8.45.0"
+  },
+  "dependencies": {
+    "flow-models-common": "github:mariogemoll/flow-models-common#8aff32246ff3ee1eb495d0698e94dbc7e66830e2",
+    "web-ui-common": "github:mariogemoll/web-ui-common#1138fbe182f13d5cb1685c99a23d3850ed7c3514"
   }
 }

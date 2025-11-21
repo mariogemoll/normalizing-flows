@@ -1,8 +1,8 @@
-import type { Tensor2D } from './tf-types';
-import { addFrameUsingScales, drawScatter, getContext } from './web-ui-common/canvas';
-import { removePlaceholder } from './web-ui-common/dom';
-import type { Pair } from './web-ui-common/types';
-import { makeScale } from './web-ui-common/util';
+import type { Tensor2D } from 'flow-models-common/tf-types';
+import { addFrameUsingScales, drawScatter, getContext } from 'web-ui-common/canvas';
+import { removePlaceholder } from 'web-ui-common/dom';
+import type { Pair } from 'web-ui-common/types';
+import { makeScale } from 'web-ui-common/util';
 
 const CANVAS_WIDTH = 400;
 const CANVAS_HEIGHT = 400;
@@ -218,8 +218,8 @@ export function initWidget(
     if (t === 0 || frameIndex === nextFrameIndex) {
       // No interpolation needed - we're exactly on a frame
       const dataArray = frames[frameIndex].arraySync();
-      // eslint-disable-next-line @typescript-eslint/no-unnecessary-type-assertion
-      coords = (dataArray as number[][]).map(([x, y]) => [x, y]);
+
+      coords = dataArray.map(([x, y]) => [x, y]);
     } else {
       // Interpolate between frames
       coords = interpolateFrames(frames[frameIndex], frames[nextFrameIndex], t);

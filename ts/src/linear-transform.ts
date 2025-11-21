@@ -1,9 +1,10 @@
+import { addFrameUsingScales, getContext } from 'web-ui-common/canvas';
+import { removePlaceholder } from 'web-ui-common/dom';
+import type { Scale } from 'web-ui-common/types';
+import { makeScale } from 'web-ui-common/util';
+
 import { defaultMargins } from './constants';
 import { drawDistribution } from './distribution-drawing';
-import { addFrameUsingScales, getContext } from './web-ui-common/canvas';
-import { removePlaceholder } from './web-ui-common/dom';
-import type { Scale } from './web-ui-common/types';
-import { makeScale } from './web-ui-common/util';
 
 const Z_DOMAIN: [number, number] = [-3, 3];
 const X_DOMAIN: [number, number] = [0, 2];
