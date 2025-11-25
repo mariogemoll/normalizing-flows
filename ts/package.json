@@ -2,6 +2,11 @@
   "name": "normalizing-flows",
   "version": "0.0.0",
   "type": "module",
+  "exports": {
+    "./layers": "./src/layers.ts",
+    "./linear-transform": "./src/linear-transform.ts",
+    "./pipeline": "./src/normalizing-flow-pipeline.ts"
+  },
   "scripts": {
     "build": "esbuild src/page.ts --bundle --outfile=dist/page.js --format=esm"
   },
