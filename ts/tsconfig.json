@@ -6,10 +6,9 @@
     "moduleResolution": "bundler",
     "esModuleInterop": true,
     "outDir": "dist",
-    "rootDir": "src",
     "strict": true,
     "forceConsistentCasingInFileNames": true,
     "skipLibCheck": true
   },
-  "include": ["src"]
+  "include": ["src/**/*", "node_modules/web-ui-common/src/**/*"]
 }

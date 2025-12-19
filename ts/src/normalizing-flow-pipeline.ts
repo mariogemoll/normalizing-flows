@@ -1,4 +1,4 @@
-import type { FlowModel } from 'flow-models-common/model-interface';
+import type { Generative } from 'flow-models-common/model-interface';
 import { initPipeline, type VisualizationCallbacks } from 'flow-models-common/pipeline';
 import type { Tensor2D } from 'flow-models-common/tf-types';
 
@@ -15,7 +15,7 @@ export async function initNormalizingFlowPipeline(
 ): Promise<void> {
   // Create visualization callbacks for normalizing flow
   const visualizationCallbacks: VisualizationCallbacks = {
-    updateVisualization: (model: FlowModel, container: HTMLDivElement) => {
+    updateVisualization: (model: Generative, container: HTMLDivElement) => {
       const initialNumSamples = 500;
 
       // Function to generate frames for a given number of samples
