@@ -123,7 +123,7 @@ export class NormalizingFlow implements FlowModel {
   forward(x: Tensor2D): [Tensor2D[], Tensor1D] {
     return tf.tidy(() => {
       const m = x.shape[0];
-      let logDet = tf.zeros([m]) as Tensor1D;
+      let logDet: Tensor1D = tf.zeros([m]);
       const zs: Tensor2D[] = [x];
       let current = x;
 
@@ -141,7 +141,7 @@ export class NormalizingFlow implements FlowModel {
   inverse(z: Tensor2D): [Tensor2D[], Tensor1D] {
     return tf.tidy(() => {
       const m = z.shape[0];
-      let logDet = tf.zeros([m]) as Tensor1D;
+      let logDet: Tensor1D = tf.zeros([m]);
       const xs: Tensor2D[] = [z];
       let current = z;
 

@@ -21,7 +21,7 @@ export async function initNormalizingFlowPipeline(
       // Function to generate frames for a given number of samples
       function generateFrames(numSamples: number): Tensor2D[] {
         // Sample from standard normal distribution (generation)
-        const normalSamples = tf.randomNormal([numSamples, 2]) as Tensor2D;
+        const normalSamples: Tensor2D = tf.randomNormal([numSamples, 2]);
 
         // Run generation to generate data (from normal to moons)
         const [frames] = model.generate(normalSamples);
